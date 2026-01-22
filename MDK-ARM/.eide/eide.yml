@@ -8,24 +8,6 @@ virtualFolder:
   name: <virtual_root>
   files: []
   folders:
-    - name: FreeRTOS
-      files: []
-      folders:
-        - name: Source
-          files:
-            - path: ../freertos/src/croutine.c
-            - path: ../freertos/src/event_groups.c
-            - path: ../freertos/src/list.c
-            - path: ../freertos/src/queue.c
-            - path: ../freertos/src/stream_buffer.c
-            - path: ../freertos/src/tasks.c
-            - path: ../freertos/src/timers.c
-          folders:
-            - name: Portable
-              files:
-                - path: ../freertos/portable/MemMang/heap_4.c
-                - path: ../freertos/portable/ARM_CM4F/port.c
-              folders: []
     - name: Application
       files: []
       folders:
@@ -47,15 +29,30 @@ virtualFolder:
                 - path: ../Core/Src/usart.c
                 - path: ../Core/Src/stm32f4xx_it.c
                 - path: ../Core/Src/stm32f4xx_hal_msp.c
-                - path: ../Core/Src/system_stm32f4xx.c
                 - path: ../Core/Src/stm32f4xx_hal_timebase_tim.c
-                - path: ../Core/Inc/FreeRTOSConfig.h
               folders: []
+    - name: Middlewares
+      files: []
+      folders:
+        - name: FreeRTOS
+          files:
+            - path: ../freertos/src/croutine.c
+            - path: ../freertos/src/event_groups.c
+            - path: ../freertos/src/list.c
+            - path: ../freertos/src/queue.c
+            - path: ../freertos/src/stream_buffer.c
+            - path: ../freertos/src/tasks.c
+            - path: ../freertos/src/timers.c
+            - path: ../freertos/portable/ARM_CM4F/port.c
+            - path: ../freertos/portable/MemMang/heap_4.c
+          folders: []
     - name: Drivers
       files: []
       folders:
         - name: STM32F4xx_HAL_Driver
           files:
+            - path: ../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c
+            - path: ../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c
             - path: ../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c
             - path: ../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.c
             - path: ../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_adc.c
@@ -74,8 +71,6 @@ virtualFolder:
             - path: ../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c
             - path: ../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c
             - path: ../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
-            - path: ../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c
-            - path: ../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c
             - path: ../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c
           folders: []
         - name: CMSIS
@@ -99,11 +94,11 @@ targets:
         - .
         - ../Core/Inc
         - ../Drivers/STM32F4xx_HAL_Driver/Inc
-        - ../freertos/include
-        - ../freertos/portable/ARM_CM4F
         - ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy
         - ../Drivers/CMSIS/Device/ST/STM32F4xx/Include
         - ../Drivers/CMSIS/Include
+        - ../freertos/include
+        - ../freertos/portable/ARM_CM4F
         - .cmsis/include
         - RTE/_robot
       libList: []
