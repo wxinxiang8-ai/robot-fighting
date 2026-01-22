@@ -24,11 +24,12 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "laser.h"
+#include "shade.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -80,6 +81,8 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  MX_ADC2_Init();
+  MX_DMA_Init();
 
   /* USER CODE END Init */
 
@@ -106,6 +109,8 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM9_Init();
   /* USER CODE BEGIN 2 */
+  extern uint32_t shade[4];
+  extern float voltage[4];
 
   /* USER CODE END 2 */
 
@@ -114,7 +119,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+  site_detect_shade();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
