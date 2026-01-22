@@ -31,11 +31,12 @@ virtualFolder:
                 - path: ../Core/Src/stm32f4xx_it.c
                 - path: ../Core/Src/stm32f4xx_hal_msp.c
                 - path: ../Core/Src/stm32f4xx_hal_timebase_tim.c
-                - path: ../Core/Src/laser.c
                 - path: ../Core/Src/motor.c
                 - path: ../Core/Src/system_stm32f4xx.c
                 - path: ../Core/Src/dis_sensor.c
                 - path: ../Core/Src/shade.c
+                - path: ../Core/Src/encoder.c
+                - path: ../Core/Src/obstacle.c
               folders: []
     - name: Middlewares
       files: []
