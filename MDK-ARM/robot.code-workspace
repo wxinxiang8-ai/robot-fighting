@@ -4,10 +4,10 @@
             "path": "."
         },
         {
-            "path": "../Core"
+            "path": "../Core/Inc"
         },
         {
-            "path": "../freertos"
+            "path": "../Core/Src"
         }
     ],
     "settings": {},
