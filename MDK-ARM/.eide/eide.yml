@@ -30,6 +30,11 @@ virtualFolder:
                 - path: ../Core/Src/stm32f4xx_it.c
                 - path: ../Core/Src/stm32f4xx_hal_msp.c
                 - path: ../Core/Src/stm32f4xx_hal_timebase_tim.c
+<<<<<<< HEAD
+=======
+                - path: ../Core/Inc/FreeRTOSConfig.h
+                - path: ../Core/Src/laser.c
+>>>>>>> 445e000d9af5bf95819e6963cdbecdc8e90e9e64
               folders: []
     - name: Middlewares
       files: []
