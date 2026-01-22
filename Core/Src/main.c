@@ -28,8 +28,9 @@
 /* USER CODE BEGIN Includes */
 #include "FreeRTOS.h"
 #include "task.h"
-#include "laser.h"
 #include "shade.h"
+#include "dis_sensor.h"
+#include "obstacle.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -109,6 +110,11 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM9_Init();
   /* USER CODE BEGIN 2 */
+  // Initialize Distance Sensors (using ADC1 DMA)
+  Shade_Sensor_Init();
+  Dis_Sensor_Init();
+  Obs_Sensor_Init(); // Initialize Obstacle Sensors
+
   extern uint32_t shade[4];
   extern float voltage[4];
 
@@ -119,7 +125,9 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-  site_detect_shade();
+    site_detect_shade();
+    Dis_Sensor_Process();
+    Obs_Sensor_ReadAll(); // Update Obstacle Sensor Data
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
