@@ -15,6 +15,22 @@
 #define SPEED_TURN_M        400         // 中等转向速度(40%)
 #define SPEED_TURN_S        800         // 快速转向速度(80%)
 
+// 电机方向校正（左侧1,2和右侧3,4方向相反）                                             
+#define MOTOR_DIR_1     1    // 左前                                                    
+#define MOTOR_DIR_2     1    // 左后                                                    
+#define MOTOR_DIR_3    -1    // 右前（反向）                            
+#define MOTOR_DIR_4    -1    // 右后（反向）
+
+//电机控制结构体                                   
+typedef struct {                                   
+    int16_t target_speed;    // 目标速度 (脉冲/10ms)   
+    int16_t current_speed;   // 当前速度               
+    int16_t pwm_output;      // PWM输出值                         
+    int8_t  direction;       // 方向校正系数 (1 或 -1) 
+}MotorCtrl_TypeDef;
+
+extern MotorCtrl_TypeDef MOTOR_CTRL[4];
+
 typedef enum{
     //left_f
     MOTOR_1=1,//PD12,PD13
@@ -25,6 +41,9 @@ typedef enum{
     //right_b
     MOTOR_4=4 //PE5,PE6
 }MOTOR_ID;
+
+void MOTOR_PID_Init(void);
+void MOTOR_PID_Control(void);
 
 void MOTOR_Init(void);
 void MOTOR_SetSpeed(MOTOR_ID motor_id, int16_t speed);

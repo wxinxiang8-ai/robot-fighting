@@ -24,6 +24,7 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "FreeRTOS.h"
@@ -109,8 +110,15 @@ int main(void)
   MX_TIM8_Init();
   MX_TIM2_Init();
   MX_TIM9_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
+
+  //初始化编码器
+  ENCODER_Init(); 
+  HAL_TIM_Base_Start_IT(&htim6);
+
   // Initialize Distance Sensors (using ADC1 DMA)
+  HAL_TIM_Base_Start_IT(&htim6);
   Shade_Sensor_Init();
   Dis_Sensor_Init();
   Obs_Sensor_Init(); // Initialize Obstacle Sensors
@@ -125,9 +133,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    site_detect_shade();
-    Dis_Sensor_Process();
-    Obs_Sensor_ReadAll(); // Update Obstacle Sensor Data
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
