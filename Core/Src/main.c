@@ -24,6 +24,7 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "FreeRTOS.h"
@@ -31,6 +32,7 @@
 #include "shade.h"
 #include "dis_sensor.h"
 #include "obstacle.h"
+#include "motor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -109,14 +111,25 @@ int main(void)
   MX_TIM8_Init();
   MX_TIM2_Init();
   MX_TIM9_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
+
+  //初始化编码器
+  //ENCODER_Init();
+  HAL_TIM_Base_Start_IT(&htim6);
+
   // Initialize Distance Sensors (using ADC1 DMA)
+  HAL_TIM_Base_Start_IT(&htim6);
   Shade_Sensor_Init();
   Dis_Sensor_Init();
   Obs_Sensor_Init(); // Initialize Obstacle Sensors
 
   extern uint32_t shade[4];
   extern float voltage[4];
+
+  //初始化电机PWM
+  MOTOR_Init();
+  
 
   /* USER CODE END 2 */
 
@@ -125,9 +138,6 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    site_detect_shade();
-    Dis_Sensor_Process();
-    Obs_Sensor_ReadAll(); // Update Obstacle Sensor Data
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -182,28 +192,6 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
-
-/**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM7 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  /* USER CODE BEGIN Callback 0 */
-
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM7)
-  {
-    HAL_IncTick();
-  }
-  /* USER CODE BEGIN Callback 1 */
-
-  /* USER CODE END Callback 1 */
-}
 
 /**
   * @brief  This function is executed in case of error occurrence.

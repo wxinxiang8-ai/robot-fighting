@@ -15,6 +15,12 @@
 #define SPEED_TURN_M        400         // 中等转向速度(40%)
 #define SPEED_TURN_S        800         // 快速转向速度(80%)
 
+// 电机方向校正（左侧1,2和右侧3,4方向相反）                                              │
+#define MOTOR_DIR_1     1    // 左前                                                     │
+#define MOTOR_DIR_2     1    // 左后                                                     │
+#define MOTOR_DIR_3    -1    // 右前（反向）                                             │
+#define MOTOR_DIR_4    -1    // 右后（反向）
+
 typedef enum{
     //left_f
     MOTOR_1=1,//PD12,PD13

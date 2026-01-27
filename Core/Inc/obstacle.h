@@ -16,7 +16,7 @@ typedef struct {
     
     // 如果需要，可以添加组合状态，例如:
     // uint8_t AllStatus; // 8位位掩码，每一位代表一个传感器
-} Obs_Sensors_t;
+}Obs_Sensors_t;
 
 // 声明全局变量，供其他文件访问
 extern Obs_Sensors_t Obs_Data;
