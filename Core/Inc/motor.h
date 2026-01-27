@@ -27,6 +27,7 @@ typedef enum{
 }MOTOR_ID;
 
 void MOTOR_Init(void);
+void MOTOR_StopAll(void);
 void MOTOR_SetSpeed(MOTOR_ID motor_id, int16_t speed);
 
 void drive_For_L(void);//前进(低中高)

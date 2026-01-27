@@ -18,7 +18,7 @@ void MOTOR_Init(void)
       HAL_TIM_PWM_Start(&htim9, TIM_CHANNEL_2);  // PE6 - Motor4_B
 
       // 初始停止所有电机
-      Motor_StopAll();
+      MOTOR_StopAll();
 }
 
 void MOTOR_SetSpeed(MOTOR_ID motor_id, int16_t speed)
