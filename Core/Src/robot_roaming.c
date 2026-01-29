@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-01-29 15:21:11
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-01-29 18:36:03
+ * @LastEditTime: 2026-01-29 19:05:56
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_roaming.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -42,35 +42,41 @@ void robot_roaming()
 
     while(shade_status)
     {
-        drive_For_M();//move forward at medium speed
-
-        Obs_Sensor_ReadAll();//read obstacle sensor data
+        // 读取前方地面检测传感器（IR1左侧，IR2右侧）
+        // RESET(0) = 悬崖/无地面, SET(1) = 有地面
+        Obs_Sensor_ReadAll();
+        
         if(Obs_Data.IR1 == RESET && Obs_Data.IR2 == RESET)
         {
-            drive_Back_M();//both front sensors detect obstacle, move backward
-            HAL_Delay(500);
-            drive_Left_M();//turn left at medium speed
-            HAL_Delay(500);
-        }
-        else if(Obs_Data.IR1 == RESET && Obs_Data.IR2 == SET)
-        {
-            drive_Back_M();
-            HAL_Delay(500);
-            drive_Right_M();
-            HAL_Delay(500);
-        }
-        else if(Obs_Data.IR2 == RESET && Obs_Data.IR1 == SET)
-        {
+            // 两侧都检测到悬崖，后退并转向
             drive_Back_M();
             HAL_Delay(500);
             drive_Left_M();
             HAL_Delay(500);
         }
-        else if(Obs_Data.IR1 == SET && Obs_Data.IR2 == SET)
+        else if(Obs_Data.IR1 == RESET && Obs_Data.IR2 == SET)
         {
+            // 左侧检测到悬崖，后退并右转避开
             drive_Back_M();
             HAL_Delay(500);
+            drive_Right_M();
+            HAL_Delay(500);
         }
+        else if(Obs_Data.IR1 == SET && Obs_Data.IR2 == RESET)
+        {
+            // 右侧检测到悬崖，后退并左转避开
+            drive_Back_M();
+            HAL_Delay(500);
+            drive_Left_M();
+            HAL_Delay(500);
+        }
+        else
+        {
+            // 两侧都检测到地面，安全，继续前进
+            drive_For_M();
+        }
+        
+        // 每次判断后检测是否还在擂台上
         shade_status = detect_shade();
     }
 }
