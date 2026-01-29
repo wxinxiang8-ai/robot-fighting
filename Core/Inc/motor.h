@@ -49,6 +49,9 @@ void drive_Right_M(void);
 void drive_Left_S(void);//超级左右转
 void drive_Right_S(void);
 
+void drive_Retreat_L(void);//后退左转
+void drive_Retreat_L(void);//后退右转
+
 void MOTOR_StopAll(void);
 
 #endif

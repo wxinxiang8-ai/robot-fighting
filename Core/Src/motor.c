@@ -138,3 +138,19 @@ void drive_Right_S(void)
     MOTOR_SetSpeed(MOTOR_3, -SPEED_TURN_S);
     MOTOR_SetSpeed(MOTOR_4, -SPEED_TURN_S);
 }
+
+void drive_Retreat_L(void)
+{
+    MOTOR_SetSpeed(MOTOR_1, -SPEED_TURN_S);
+    MOTOR_SetSpeed(MOTOR_2, -SPEED_TURN_S);
+    MOTOR_SetSpeed(MOTOR_3, -SPEED_TURN_S+200);
+    MOTOR_SetSpeed(MOTOR_4, -SPEED_TURN_S+200);   
+}
+
+void drive_Retreat_L(void)
+{
+    MOTOR_SetSpeed(MOTOR_1, -SPEED_TURN_S+200);
+    MOTOR_SetSpeed(MOTOR_2, -SPEED_TURN_S+200);
+    MOTOR_SetSpeed(MOTOR_3, -SPEED_TURN_S);
+    MOTOR_SetSpeed(MOTOR_4, -SPEED_TURN_S);   
+}
