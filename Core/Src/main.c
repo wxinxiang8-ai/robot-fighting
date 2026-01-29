@@ -113,22 +113,15 @@ int main(void)
   MX_TIM8_Init();
   MX_TIM2_Init();
   MX_TIM9_Init();
-  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
 
-  //初始化编码器
-  //ENCODER_Init();
-  HAL_TIM_Base_Start_IT(&htim6);
-
-  // Initialize Distance Sensors (using ADC1 DMA)
-  HAL_TIM_Base_Start_IT(&htim6);
   Shade_Sensor_Init();
   Dis_Sensor_Init();
   Obs_Sensor_Init(); // Initialize Obstacle Sensors
   OLED_Init();
 
-  extern uint32_t shade[4];
-  extern float voltage[4];
+  extern uint32_t shade[2];
+  extern float voltage[2];
 
   //初始化电机PWM
   MOTOR_Init();

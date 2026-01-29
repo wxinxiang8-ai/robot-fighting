@@ -10,8 +10,8 @@
 #define SHADE_H
 
 #include "main.h"
-extern uint32_t shade[4];//adc value
-extern float voltage[4];//voltage value
+extern uint32_t shade[2];//adc value
+extern float voltage[2];//voltage value
 
 void Shade_Sensor_Init(void);
 void site_detect_shade(void);
