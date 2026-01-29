@@ -25,11 +25,11 @@ typedef enum{
     //left_f
     MOTOR_1=1,//PD12,PD13
     //left_b
-    MOTOR_2=2,//PD14,PD15
+    MOTOR_2=2,//PD12,PD13
     //right_f
-    MOTOR_3=3,//PA2,PA3
+    MOTOR_3=3,//PD14,PD15
     //right_b
-    MOTOR_4=4 //PE5,PE6
+    MOTOR_4=4 //PD14,PD15
 }MOTOR_ID;
 
 void MOTOR_Init(void);
