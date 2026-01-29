@@ -9,14 +9,6 @@ void MOTOR_Init(void)
       HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);  // PD14 - Motor2_A
       HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);  // PD15 - Motor2_B
 
-      // 启动TIM2 PWM - 电机3
-      HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);  // PA2 - Motor3_A
-      HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);  // PA3 - Motor3_B
-
-      // 启动TIM9 PWM - 电机4
-      HAL_TIM_PWM_Start(&htim9, TIM_CHANNEL_1);  // PE5 - Motor4_A
-      HAL_TIM_PWM_Start(&htim9, TIM_CHANNEL_2);  // PE6 - Motor4_B
-
       // 初始停止所有电机
       MOTOR_StopAll();
 }
@@ -30,6 +22,7 @@ void MOTOR_SetSpeed(MOTOR_ID motor_id, int16_t speed)
     switch(motor_id)
     {
         case MOTOR_1:
+        case MOTOR_2:
             if (speed >= 0)
             {
                 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pulse); // Motor1_A
@@ -42,42 +35,17 @@ void MOTOR_SetSpeed(MOTOR_ID motor_id, int16_t speed)
             }
             break;
 
-        case MOTOR_2:
-            if (speed >= 0)
-            {
-                __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, pulse); // Motor2_A
-                __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);     // Motor2_B
-            }
-            else
-            {
-                __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);     // Motor2_A
-                __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, pulse); // Motor2_B
-            }
-            break;
-
         case MOTOR_3:
-            if (speed >= 0)
-            {
-                __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, pulse); // Motor3_A
-                __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 0);     // Motor3_B
-            }
-            else
-            {
-                __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 0);     // Motor3_A
-                __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, pulse); // Motor3_B
-            }
-            break;
-
         case MOTOR_4:
             if (speed >= 0)
             {
-                __HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, pulse); // Motor4_A
-                __HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_2, 0);     // Motor4_B
+                __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, pulse); // Motor4_A
+                __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);     // Motor4_B
             }
             else
             {
-                __HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, 0);     // Motor4_A
-                __HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_2, pulse); // Motor4_B
+                __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);     // Motor4_A
+                __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, pulse); // Motor4_B
             }
             break;
         }

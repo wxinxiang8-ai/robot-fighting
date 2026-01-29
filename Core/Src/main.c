@@ -138,6 +138,13 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+    drive_For_L();
+    HAL_Delay(2000);
+    drive_Back_L();
+    HAL_Delay(2000);
+    MOTOR_StopAll();
+    HAL_Delay(2000);
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
