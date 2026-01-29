@@ -33,6 +33,8 @@
 #include "dis_sensor.h"
 #include "obstacle.h"
 #include "motor.h"
+#include "oled.h"
+#include "oled_font.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -123,6 +125,7 @@ int main(void)
   Shade_Sensor_Init();
   Dis_Sensor_Init();
   Obs_Sensor_Init(); // Initialize Obstacle Sensors
+  OLED_Init();
 
   extern uint32_t shade[4];
   extern float voltage[4];
@@ -146,6 +149,19 @@ int main(void)
     HAL_Delay(2000);
 
     /* USER CODE BEGIN 3 */
+    Obs_Sensor_ReadAll();
+
+    OLED_ShowString(0, 0, (char*)"IR8 (PE14) Test");
+    if (Obs_Data.IR8 == GPIO_PIN_SET)
+    {
+      OLED_ShowString(2, 0, (char*)"Value: 1");
+    }
+    else
+    {
+      OLED_ShowString(2, 0, (char*)"Value: 0");
+    }
+
+    HAL_Delay(100);
   }
   /* USER CODE END 3 */
 }
