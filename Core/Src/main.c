@@ -35,6 +35,7 @@
 #include "motor.h"
 #include "oled.h"
 #include "oled_font.h"
+#include "robot_up.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -125,8 +126,9 @@ int main(void)
 
   //初始化电机PWM
   MOTOR_Init();
-  
-
+  HAL_Delay(1000);
+  //初始化上台模块
+  GoUp_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -134,21 +136,13 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+    GoUp_Update();
+    if(GoUp_IsDone())
+    {
+      MOTOR_StopAll();
+    }
 
     /* USER CODE BEGIN 3 */
-    Obs_Sensor_ReadAll();
-
-    OLED_ShowString(0, 0, (char*)"IR8 (PE14) Test");
-    if (Obs_Data.IR8 == GPIO_PIN_SET)
-    {
-      OLED_ShowString(2, 0, (char*)"Value: 1");
-    }
-    else
-    {
-      OLED_ShowString(2, 0, (char*)"Value: 0");
-    }
-
-    HAL_Delay(100);
   }
   /* USER CODE END 3 */
 }

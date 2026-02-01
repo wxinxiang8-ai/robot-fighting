@@ -12,8 +12,9 @@ typedef enum{
 }GoUpState;
 
 /*======时间参数======*/
+//#define GOUP_SPEED_TIME 500
 #define GOUP_RUSH_TIME 1000
-#define GOUP_TURN_TIME 500
+#define GOUP_TURN_TIME 1000
 
 
 void GoUp_Init(void);

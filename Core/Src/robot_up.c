@@ -39,8 +39,8 @@ void GoUp_Update()
             }
             break;
         case GOUP_TURN:
-            /*差速掉头*/
-            drive_Retreat_L();
+            /*原地掉头*/
+            drive_Left_S();
             if(elapsed_time >= GOUP_TURN_TIME)
             {
                 GoUp_Stage = GOUP_DONE;
