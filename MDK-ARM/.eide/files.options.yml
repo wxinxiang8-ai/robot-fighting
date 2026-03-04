@@ -17,4 +17,5 @@ version: "2.1"
 options:
     robot:
         files: {}
-        virtualPathFiles: {}
+        virtualPathFiles:
+            <virtual_root>/Application/User/Core/stm32f4xx_hal_timebase_tim.c: ""
