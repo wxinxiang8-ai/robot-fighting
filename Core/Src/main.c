@@ -144,37 +144,7 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
-    // 读取所有红外传感器状态
-    Obs_Sensor_ReadAll();
     
-    // 在OLED屏幕上显示IR1传感器状态
-    OLED_ShowString(2, 1, "IR1 Status:");
-    
-    // 显示IR1的数字状态 (0或1)
-    if(Obs_Data.IR1 == GPIO_PIN_SET)
-    {
-      OLED_ShowString(3, 1, "Signal: HIGH ");
-      OLED_ShowNum(3, 14, 1, 1);
-    }
-    else
-    {
-      OLED_ShowString(3, 1, "Signal: LOW  ");
-      OLED_ShowNum(3, 14, 0, 1);
-    }
-    
-    // 显示检测结果提示
-    if(Obs_Data.IR1 == GPIO_PIN_SET)
-    {
-      OLED_ShowString(4, 1, "Detect: YES");
-    }
-    else
-    {
-      OLED_ShowString(4, 1, "Detect: NO ");
-    }
-    
-    // 延时以便观察
-    HAL_Delay(100);
-
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

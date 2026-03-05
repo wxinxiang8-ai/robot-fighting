@@ -2,6 +2,22 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-02-01 14:52:47
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
+ * @LastEditTime: 2026-03-04 15:00:11
+ * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_roaming.c
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
+/*
+ * @Author: Xiang xin wang wxinxiang8@gmail.com
+ * @Date: 2026-02-01 14:52:47
+ * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
+ * @LastEditTime: 2026-03-04 14:58:50
+ * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_roaming.c
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
+/*
+ * @Author: Xiang xin wang wxinxiang8@gmail.com
+ * @Date: 2026-02-01 14:52:47
+ * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
  * @LastEditTime: 2026-02-03 14:23:36
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_roaming.c
  * @Description: 机器人漫游控制，使用状态机实现非阻塞式控制
