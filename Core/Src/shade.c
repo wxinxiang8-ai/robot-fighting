@@ -13,7 +13,7 @@
 // MX_ADC2_Init();
 // MX_DMA_Init(); // Do not call init functions at global scope. They are called in main.c
 
-uint32_t shade[2];//adc value
+uint16_t shade[2];//adc value
 float voltage[2];//voltage value
 
 void Shade_Sensor_Init(void)

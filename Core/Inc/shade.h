@@ -10,7 +10,7 @@
 #define SHADE_H
 
 #include "main.h"
-extern uint32_t shade[2];//adc value
+extern uint16_t shade[2];//adc value
 extern float voltage[2];//voltage value
 
 void Shade_Sensor_Init(void);
