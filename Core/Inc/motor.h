@@ -9,17 +9,11 @@
 // 预定义速度等级
 #define SPEED_LOW           300         // 低速(30%)
 #define SPEED_MEDIUM        600         // 中速(60%)
-#define SPEED_HIGH          900         // 高速(90%)
+#define SPEED_HIGH          800         // 高速(90%)
 
 // 转向速度
 #define SPEED_TURN_M        400         // 中等转向速度(40%)
-#define SPEED_TURN_S        800         // 快速转向速度(80%)
-
-// 电机方向校正（左侧1,2和右侧3,4方向相反）                                              │
-#define MOTOR_DIR_1     1    // 左前                                                     │
-#define MOTOR_DIR_2     1    // 左后                                                     │
-#define MOTOR_DIR_3    -1    // 右前（反向）                                             │
-#define MOTOR_DIR_4    -1    // 右后（反向）
+#define SPEED_TURN_S        600         // 快速转向速度(60%)
 
 typedef enum{
     //left_f
