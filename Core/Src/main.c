@@ -116,51 +116,26 @@ int main(void)
   MX_TIM9_Init();
   /* USER CODE BEGIN 2 */
 
-  Shade_Sensor_Init();
-  Dis_Sensor_Init();
-  Obs_Sensor_Init(); // Initialize Obstacle Sensors
-  OLED_Init();
-
-  extern uint16_t shade[2];
-  extern float voltage[2];
+  Obs_Sensor_Init();
+  MOTOR_Init();
+  Roaming_Init();
 
   //初始化电机PWM
   // MOTOR_Init();
   // HAL_Delay(1000);
   //初始化上台模块
-  // GoUp_Init();
+   GoUp_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  
-  // 灰度传感器测试 - OLED显示电压值
-  OLED_Clear();
-  OLED_ShowString(1, 1, "Shade Sensor");
-  
-  char buf[17]; // OLED每行最多16字符
-  
+
   while (1)
   {
-    // 读取灰度传感器ADC值并转换为电压
-    site_detect_shade();
-    
-    // 第1路灰度传感器: 显示ADC原始值和电压
-    sprintf(buf, "S1 ADC:%4u", shade[0]);
-    OLED_ShowString(2, 1, buf);
-    sprintf(buf, "S1 V:%d.%02dV", (int)voltage[0], (int)(voltage[0] * 100) % 100);
-    OLED_ShowString(3, 1, buf);
-    
-    // 第2路灰度传感器: 显示ADC原始值和电压
-    sprintf(buf, "S2 ADC:%4u", shade[1]);
-    OLED_ShowString(4, 1, buf);
-    sprintf(buf, "S2 V:%d.%02dV", (int)voltage[1], (int)(voltage[1] * 100) % 100);
-    OLED_ShowString(5, 1, buf); // OLED若只有4行则不显示此行
-    
-    HAL_Delay(200); // 200ms刷新一次
+    Roaming_Update();
+    HAL_Delay(10);
     /* USER CODE END WHILE */
 
-    
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

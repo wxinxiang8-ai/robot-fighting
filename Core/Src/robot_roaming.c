@@ -27,33 +27,30 @@
 #include "obstacle.h"
 #include "dis_sensor.h"
 #include "motor.h"
-#include "oled.h"
-#include "oled_font.h"
 
 extern float voltage[2];
 
 static RoamingState Roaming_Stage = ROAMING_FORWARD;
 static uint32_t Roaming_StartTime = 0;
 static bool Roaming_Done = false;
+static RoamingBackReason Roaming_BackReason = BACK_REASON_NONE;
+static uint32_t Roaming_TurnTime = ROAMING_TURN_TIME;
 
 /**
- * @description: 检测是否在擂台上
+ * @description: 检测是否掉落擂台
  * @param void
- * @return int 1=在擂台上, 0=掉落擂台
+ * @return int 1=掉落擂台, 0=在擂台上
  */
 static int detect_shade(void)
 {
-    Shade_Sensor_Init();//initialize shade sensor
     site_detect_shade();//read shade sensor data
-    
-    if(voltage[0]<3.0f&&voltage[1]<3.0f)
+
+    if(voltage[0] > 2.8f && voltage[1] > 2.8f)
     {
-        OLED_ShowString(4, 0, (char*)"safe");
         return 1;
     }
     else
     {
-        OLED_ShowString(4, 0, (char*)"unsafe");
         return 0;
     }
 }
@@ -65,9 +62,11 @@ static int detect_shade(void)
  */
 void Roaming_Init(void)
 {
+    Shade_Sensor_Init();
     Roaming_Stage = ROAMING_FORWARD;
     Roaming_StartTime = HAL_GetTick();
     Roaming_Done = false;
+    Roaming_BackReason = BACK_REASON_NONE;
 }
 
 /**
@@ -80,10 +79,11 @@ void Roaming_Update(void)
     uint32_t current_time = HAL_GetTick();
     uint32_t elapsed_time = current_time - Roaming_StartTime;
     
-    // 首先检测是否还在擂台上
-    if(!detect_shade())
+    // 检测到掉台信号时，立即停机
+    if(detect_shade())
     {
         Roaming_Stage = ROAMING_DONE;
+        Roaming_Done = true;
         MOTOR_StopAll();
         return;
     }
@@ -100,18 +100,21 @@ void Roaming_Update(void)
             if(Obs_Data.IR1 == SET && Obs_Data.IR2 == SET)
             {
                 // 两侧都检测到悬崖，后退
+                Roaming_BackReason = BACK_REASON_BOTH;
                 Roaming_Stage = ROAMING_BACK;
                 Roaming_StartTime = current_time;
             }
             else if(Obs_Data.IR1 == SET && Obs_Data.IR2 == RESET)
             {
                 // 左侧检测到悬崖，后退准备右转
+                Roaming_BackReason = BACK_REASON_LEFT;
                 Roaming_Stage = ROAMING_BACK;
                 Roaming_StartTime = current_time;
             }
             else if(Obs_Data.IR1 == RESET && Obs_Data.IR2 == SET)
             {
                 // 右侧检测到悬崖，后退准备左转
+                Roaming_BackReason = BACK_REASON_RIGHT;
                 Roaming_Stage = ROAMING_BACK;
                 Roaming_StartTime = current_time;
             }
@@ -124,29 +127,28 @@ void Roaming_Update(void)
             
             if(elapsed_time >= ROAMING_BACK_TIME)
             {
-                // 后退完成，判断应该向哪个方向转
-                Obs_Sensor_ReadAll();
-                
-                if(Obs_Data.IR1 == SET && Obs_Data.IR2 == SET)
+                // 后退完成，根据触发后退时锁存的原因决定转向
+                if(Roaming_BackReason == BACK_REASON_BOTH)
                 {
-                    // 两侧都有悬崖，默认左转
-                    Roaming_Stage = ROAMING_TURN_LEFT;
-                }
-                else if(Obs_Data.IR1 == SET && Obs_Data.IR2 == RESET)
-                {
-                    // 左侧有悬崖，右转避开
                     Roaming_Stage = ROAMING_TURN_RIGHT;
+                    Roaming_TurnTime = ROAMING_BACKAND_TURN_TIME;
                 }
-                else if(Obs_Data.IR1 == RESET && Obs_Data.IR2 == SET)
+                else if(Roaming_BackReason == BACK_REASON_LEFT)
                 {
-                    // 右侧有悬崖，左转避开
+                    Roaming_Stage = ROAMING_TURN_RIGHT;
+                    Roaming_TurnTime = ROAMING_TURN_TIME;
+                }
+                else if(Roaming_BackReason == BACK_REASON_RIGHT)
+                {
                     Roaming_Stage = ROAMING_TURN_LEFT;
+                    Roaming_TurnTime = ROAMING_TURN_TIME;
                 }
                 else
                 {
-                    // 后退后前方安全，继续前进
                     Roaming_Stage = ROAMING_FORWARD;
+                    Roaming_TurnTime = ROAMING_TURN_TIME;
                 }
+                Roaming_BackReason = BACK_REASON_NONE;
                 
                 Roaming_StartTime = current_time;
             }
@@ -156,7 +158,7 @@ void Roaming_Update(void)
             // 左转状态
             drive_Left_M();
             
-            if(elapsed_time >= ROAMING_TURN_TIME)
+            if(elapsed_time >= Roaming_TurnTime)
             {
                 // 转向完成，继续前进
                 Roaming_Stage = ROAMING_FORWARD;
@@ -168,7 +170,7 @@ void Roaming_Update(void)
             // 右转状态
             drive_Right_M();
             
-            if(elapsed_time >= ROAMING_TURN_TIME)
+            if(elapsed_time >= Roaming_TurnTime)
             {
                 // 转向完成，继续前进
                 Roaming_Stage = ROAMING_FORWARD;
