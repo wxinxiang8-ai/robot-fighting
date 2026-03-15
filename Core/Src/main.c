@@ -37,6 +37,7 @@
 #include "oled_font.h"
 #include "robot_up.h"
 #include "robot_roaming.h"
+#include "robot_backup.h"
 #include <stdio.h>
 /* USER CODE END Includes */
 
@@ -118,7 +119,9 @@ int main(void)
 
   Obs_Sensor_Init();
   MOTOR_Init();
+  Dis_Sensor_Init();
   Roaming_Init();
+  Backup_Init();
 
   //初始化电机PWM
   // MOTOR_Init();
@@ -132,7 +135,14 @@ int main(void)
 
   while (1)
   {
-    Roaming_Update();
+    if(Backup_State == GOUP_FALL)
+    {
+      Backup_Update();
+    }
+    else
+    {
+      Roaming_Update();
+    }
     HAL_Delay(10);
     /* USER CODE END WHILE */
 
