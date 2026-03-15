@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-02-01 14:52:47
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-04 15:00:11
+ * @LastEditTime: 2026-03-15 21:06:47
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_roaming.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -25,10 +25,11 @@
 #include "robot_roaming.h"
 #include "shade.h"
 #include "obstacle.h"
-#include "dis_sensor.h"
 #include "motor.h"
+#include "robot_backup.h"
 
 extern float voltage[2];
+extern BackUpstate_t Backup_State;
 
 static RoamingState Roaming_Stage = ROAMING_FORWARD;
 static uint32_t Roaming_StartTime = 0;
@@ -84,6 +85,7 @@ void Roaming_Update(void)
     {
         Roaming_Stage = ROAMING_DONE;
         Roaming_Done = true;
+        Backup_State = GOUP_FALL; // 切换到掉台状态
         MOTOR_StopAll();
         return;
     }

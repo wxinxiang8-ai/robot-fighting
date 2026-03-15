@@ -13,6 +13,8 @@ typedef struct {
     GPIO_PinState IR6; // 传感器6状态
     GPIO_PinState IR7; // 传感器7状态
     GPIO_PinState IR8; // 传感器8状态
+    GPIO_PinState IR9; // 传感器9状态
+    GPIO_PinState IR10; // 传感器10状态
     
     // 如果需要，可以添加组合状态，例如:
     // uint8_t AllStatus; // 8位位掩码，每一位代表一个传感器

@@ -154,3 +154,11 @@ void drive_Retreat_R(void)
     MOTOR_SetSpeed(MOTOR_3, -SPEED_TURN_S);
     MOTOR_SetSpeed(MOTOR_4, -SPEED_TURN_S);   
 }
+
+void drive_user_defined(int16_t left_speed, int16_t right_speed)
+{
+    MOTOR_SetSpeed(MOTOR_1, left_speed);
+    MOTOR_SetSpeed(MOTOR_2, left_speed);
+    MOTOR_SetSpeed(MOTOR_3, right_speed);
+    MOTOR_SetSpeed(MOTOR_4, right_speed);
+}

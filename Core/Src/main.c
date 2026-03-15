@@ -30,13 +30,13 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "shade.h"
-#include "dis_sensor.h"
 #include "obstacle.h"
 #include "motor.h"
 #include "oled.h"
 #include "oled_font.h"
 #include "robot_up.h"
 #include "robot_roaming.h"
+#include "robot_backup.h"
 #include <stdio.h>
 /* USER CODE END Includes */
 
@@ -102,7 +102,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_ADC1_Init();
   MX_ADC2_Init();
   MX_TIM1_Init();
   MX_TIM4_Init();
@@ -118,7 +117,9 @@ int main(void)
 
   Obs_Sensor_Init();
   MOTOR_Init();
-  Roaming_Init();
+  Backup_Init();
+  OLED_Init();
+  OLED_Clear();
 
   //初始化电机PWM
   // MOTOR_Init();
@@ -132,7 +133,23 @@ int main(void)
 
   while (1)
   {
-    Roaming_Update();
+    if(Backup_State == GOUP_START)
+    {
+      GoUp_Update();
+      if(Backup_State == GOUP_ON)
+      {
+        Roaming_Init();
+      }
+    }
+    else if(Backup_State == GOUP_FALL)
+    {
+      Backup_Update();
+    }
+    else
+    {
+      Roaming_Update();
+    }
+
     HAL_Delay(10);
     /* USER CODE END WHILE */
 
