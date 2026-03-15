@@ -19,8 +19,7 @@ void Obs_Sensor_Init(void)
   */
 void Obs_Sensor_ReadAll(void)
 {
-    // 读取 GPIOE 上的 IR_1 到 IR_8 引脚状态
-    // 注意：根据你的 main.h 定义，这些引脚都在 GPIOE 上
+  // 读取 GPIOE 上的 IR_1 到 IR_8，以及 GPIOA 上的 IR_9、IR_10
     
     Obs_Data.IR1 = HAL_GPIO_ReadPin(IR_1_GPIO_Port, IR_1_Pin);
     Obs_Data.IR2 = HAL_GPIO_ReadPin(IR_2_GPIO_Port, IR_2_Pin);
@@ -30,4 +29,6 @@ void Obs_Sensor_ReadAll(void)
     Obs_Data.IR6 = HAL_GPIO_ReadPin(IR_6_GPIO_Port, IR_6_Pin);
     Obs_Data.IR7 = HAL_GPIO_ReadPin(IR_7_GPIO_Port, IR_7_Pin);
     Obs_Data.IR8 = HAL_GPIO_ReadPin(IR_8_GPIO_Port, IR_8_Pin);
+  Obs_Data.IR9 = HAL_GPIO_ReadPin(IR_9_GPIO_Port, IR_9_Pin);
+  Obs_Data.IR10 = HAL_GPIO_ReadPin(IR_10_GPIO_Port, IR_10_Pin);
 }

@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-03-15 15:20:29
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-15 15:45:22
+ * @LastEditTime: 2026-03-15 21:16:19
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_backup.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -10,10 +10,9 @@
 #include "robot_roaming.h"
 #include "motor.h"
 #include "obstacle.h"
-#include "dis_sensor.h"
 #include "shade.h"
 
-BackUpstate_t Backup_State = GOUP_ON;
+BackUpstate_t Backup_State = GOUP_START;
 
 extern float voltage[2];
 
@@ -45,18 +44,14 @@ static int Backup_FrontAlignReady(void)
 
 static int Backup_ShouldRushBack(void)
 {
-    float front_distance = dis_sensor_distance[0];
-    float back_distance = dis_sensor_distance[3];
-
-    return (front_distance <= 20.0f &&
-            back_distance >= 30.0f && back_distance <= 40.0f);
+    return (Obs_Data.IR9 == RESET || Obs_Data.IR10 == RESET);
 }
 
 void Backup_Init(void)
 {
     Backup_Stage = BACKUP_SPIN;
     Backup_StartTime = HAL_GetTick();
-    Backup_State = GOUP_ON;
+    Backup_State = GOUP_START;
 }
 
 void Backup_Update(void)
@@ -72,7 +67,6 @@ void Backup_Update(void)
     }
 
     Obs_Sensor_ReadAll();
-    Dis_Sensor_Process();
     site_detect_shade();
 
     switch (Backup_Stage)

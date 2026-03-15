@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-02-01 14:52:47
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-15 15:28:21
+ * @LastEditTime: 2026-03-15 21:06:47
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_roaming.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -25,7 +25,6 @@
 #include "robot_roaming.h"
 #include "shade.h"
 #include "obstacle.h"
-#include "dis_sensor.h"
 #include "motor.h"
 #include "robot_backup.h"
 
