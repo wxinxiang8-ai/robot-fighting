@@ -1,9 +1,0 @@
-MDK-ARM/build/
-MDK-ARM/RTE/
-MDK-ARM/*.uvguix.*
-MDK-ARM/*.scvd
-MDK-ARM/*.uvoptx
-.vscode/
-*/.vscode/
-*.bak
-*.dep
