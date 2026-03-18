@@ -139,7 +139,7 @@ void drive_Right_S(void)
     MOTOR_SetSpeed(MOTOR_4, -SPEED_TURN_S);
 }
 
-void drive_Retreat_L(void)
+void drive_Retreat_L(void)//后退左转
 {
     MOTOR_SetSpeed(MOTOR_1, -SPEED_TURN_S);
     MOTOR_SetSpeed(MOTOR_2, -SPEED_TURN_S);
@@ -147,7 +147,7 @@ void drive_Retreat_L(void)
     MOTOR_SetSpeed(MOTOR_4, -SPEED_TURN_S+200);   
 }
 
-void drive_Retreat_R(void)
+void drive_Retreat_R(void)//后退右转
 {
     MOTOR_SetSpeed(MOTOR_1, -SPEED_TURN_S+200);
     MOTOR_SetSpeed(MOTOR_2, -SPEED_TURN_S+200);
@@ -155,10 +155,26 @@ void drive_Retreat_R(void)
     MOTOR_SetSpeed(MOTOR_4, -SPEED_TURN_S);   
 }
 
-void drive_user_defined(int16_t left_speed, int16_t right_speed)
+void drive_user_defined(int16_t left_speed, int16_t right_speed)//自定义速度
 {
     MOTOR_SetSpeed(MOTOR_1, left_speed);
     MOTOR_SetSpeed(MOTOR_2, left_speed);
     MOTOR_SetSpeed(MOTOR_3, right_speed);
     MOTOR_SetSpeed(MOTOR_4, right_speed);
+}
+
+void drive_ArcLeft_M(void)
+{
+    MOTOR_SetSpeed(MOTOR_1, SPEED_ARC_INNER_M);
+    MOTOR_SetSpeed(MOTOR_2, SPEED_ARC_INNER_M);
+    MOTOR_SetSpeed(MOTOR_3, SPEED_ARC_OUTER_M);
+    MOTOR_SetSpeed(MOTOR_4, SPEED_ARC_OUTER_M);
+}
+
+void drive_ArcRight_M(void)
+{
+    MOTOR_SetSpeed(MOTOR_1, SPEED_ARC_OUTER_M);
+    MOTOR_SetSpeed(MOTOR_2, SPEED_ARC_OUTER_M);
+    MOTOR_SetSpeed(MOTOR_3, SPEED_ARC_INNER_M);
+    MOTOR_SetSpeed(MOTOR_4, SPEED_ARC_INNER_M);
 }
