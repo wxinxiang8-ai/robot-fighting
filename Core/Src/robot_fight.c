@@ -3,6 +3,8 @@
 #include "motor.h"
 #include "obstacle.h"
 #include "shade.h"
+#include "vision_parser.h"
+#include "usart.h"
 
 static FightState Fight_State = FIGHT_ENGAGE;
 static uint32_t Fight_StartTime = 0;
@@ -80,15 +82,25 @@ void Fight_Update(void)
     {
         /*======交战状态======*/
         case FIGHT_ENGAGE:
-            if(dir == DIR_NONE)
+            if(dir != DIR_NONE)
             {
                 /*有目标，清除交战丢失时间*/
                 Fight_EngageLost = 0;
 
+                /*视觉判断，如果是己方能量块->回避*/
+                if (!Vision_IsTimeout() && vision_target.valid) {
+                    if (vision_target.type == 'F' || vision_target.type == 'B') {
+                        MOTOR_StopAll();
+                        Fight_State    = FIGHT_DONE;
+                        Fight_DoneFlag = true;
+                        break;
+                    }
+                }
+
                 switch(dir)
                 {
                     case DIR_FRONT:
-                        drive_For_H();
+                        drive_For_H(); 
                         break;
                     case DIR_FRONT_LEFT:
                         drive_ArcLeft_M();

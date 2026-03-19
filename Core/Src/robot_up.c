@@ -71,7 +71,7 @@ TeamColor Startup_WaitForTrigger(void)
  */
 void Startup_Notify(TeamColor team)
 {
-    uint8_t msg = (team == TEAM_YELLOW) ? 'Y' : 'B';
+    uint8_t msg = (team == TEAM_YELLOW) ? 'y' : 'b';
     HAL_UART_Transmit(&huart2, &msg, 1, 100);
 }
 
@@ -120,6 +120,7 @@ void GoUp_Update()
             break;
 
         case GOUP_DONE:
+            MOTOR_StopAll();
             Backup_State = GOUP_ON;
             GoUp_Done = true;
             break;
