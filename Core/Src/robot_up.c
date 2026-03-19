@@ -1,6 +1,5 @@
 #include "motor.h"
 #include "robot_up.h"
-#include "robot_backup.h"
 #include "usart.h"
 
 static GoUpState GoUp_Stage = GOUP_RUSH;
@@ -85,7 +84,6 @@ void GoUp_Init(void)
     GoUp_Stage = GOUP_RUSH;
     GoUp_StartTime = HAL_GetTick();
     GoUp_Done = false;
-    Backup_State = GOUP_START;
 }
 
 /**
@@ -121,7 +119,6 @@ void GoUp_Update()
 
         case GOUP_DONE:
             MOTOR_StopAll();
-            Backup_State = GOUP_ON;
             GoUp_Done = true;
             break;
 

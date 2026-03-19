@@ -26,10 +26,8 @@
 #include "shade.h"
 #include "obstacle.h"
 #include "motor.h"
-#include "robot_backup.h"
 
 extern float voltage[2];
-extern BackUpstate_t Backup_State;
 
 static RoamingState Roaming_Stage = ROAMING_FORWARD;
 static uint32_t Roaming_StartTime = 0;
@@ -85,7 +83,6 @@ void Roaming_Update(void)
     {
         Roaming_Stage = ROAMING_DONE;
         Roaming_Done = true;
-        Backup_State = GOUP_FALL; // 切换到掉台状态
         MOTOR_StopAll();
         return;
     }
