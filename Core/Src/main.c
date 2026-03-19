@@ -37,6 +37,7 @@
 #include "robot_up.h"
 #include "robot_roaming.h"
 #include "robot_backup.h"
+#include "robot_control.h"
 #include <stdio.h>
 /* USER CODE END Includes */
 
@@ -121,11 +122,11 @@ int main(void)
   OLED_Init();
   OLED_Clear();
 
-  //初始化电机PWM
-  // MOTOR_Init();
-  // HAL_Delay(1000);
-  //初始化上台模块
-   GoUp_Init();
+  /* 阻塞等待非接触式选队 */
+  Startup_WaitForTrigger();
+
+  /* 启动总控状态机（内部会调 GoUp_Init） */
+  Robot_Control_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -133,23 +134,7 @@ int main(void)
 
   while (1)
   {
-    if(Backup_State == GOUP_START)
-    {
-      GoUp_Update();
-      if(Backup_State == GOUP_ON)
-      {
-        Roaming_Init();
-      }
-    }
-    else if(Backup_State == GOUP_FALL)
-    {
-      Backup_Update();
-    }
-    else
-    {
-      Roaming_Update();
-    }
-
+    Robot_Control_Update();
     HAL_Delay(10);
     /* USER CODE END WHILE */
 
