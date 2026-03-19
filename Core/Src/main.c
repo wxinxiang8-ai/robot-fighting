@@ -119,13 +119,8 @@ int main(void)
   Obs_Sensor_Init();
   MOTOR_Init();
   Backup_Init();
-  OLED_Init();
-  OLED_Clear();
-
-  /* 阻塞等待非接触式选队 */
+  MOTOR_StopAll();
   Startup_WaitForTrigger();
-
-  /* 启动总控状态机（内部会调 GoUp_Init） */
   Robot_Control_Init();
   /* USER CODE END 2 */
 

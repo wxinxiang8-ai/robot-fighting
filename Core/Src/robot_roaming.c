@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-02-01 14:52:47
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-15 21:06:47
+ * @LastEditTime: 2026-03-19 19:59:52
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_roaming.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -122,7 +122,7 @@ void Roaming_Update(void)
             
         case ROAMING_BACK:
             // 后退状态
-            drive_Back_L();
+            drive_Back_M();
             
             if(elapsed_time >= ROAMING_BACK_TIME)
             {

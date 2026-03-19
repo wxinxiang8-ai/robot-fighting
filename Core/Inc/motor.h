@@ -12,6 +12,7 @@
 #define SPEED_HIGH          800         // 高速(90%)
 
 // 转向速度
+#define SPEED_TURN_L        200         // 慢转向速度(20%)
 #define SPEED_TURN_M        400         // 中等转向速度(40%)
 #define SPEED_TURN_S        600         // 快速转向速度(60%)
 
@@ -40,6 +41,9 @@ void drive_For_H(void);
 void drive_Back_L(void);//后退(低中高)
 void drive_Back_M(void);
 void drive_Back_H(void);
+
+void drive_Left_L(void);//慢左右转
+void drive_Right_L(void);
 
 void drive_Left_M(void);//微左右转
 void drive_Right_M(void);

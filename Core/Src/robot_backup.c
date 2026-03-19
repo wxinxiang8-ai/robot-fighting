@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-03-15 15:20:29
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-19 15:18:24
+ * @LastEditTime: 2026-03-19 20:43:18
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_backup.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -23,6 +23,17 @@ typedef enum {
 static BackupStage_t Backup_Stage = BACKUP_SPIN;
 static uint32_t Backup_StartTime = 0;
 static bool Backup_Done = false;
+
+static void Backup_FinishRecovery(uint32_t current_time)
+{
+    drive_Left_M();
+    HAL_Delay(200);
+    MOTOR_StopAll();
+    Backup_Done = true;
+    Backup_Stage = BACKUP_SPIN;
+    Backup_StartTime = current_time;
+    Roaming_Init();
+}
 
 static void Backup_SwitchStage(BackupStage_t next_stage, uint32_t current_time)
 {
@@ -64,24 +75,19 @@ void Backup_Update(void)
     }
 
     Obs_Sensor_ReadAll();
-    site_detect_shade();
 
     switch (Backup_Stage)
     {
         case BACKUP_SPIN:
-            drive_Left_M();
+            drive_Left_L();
             if(Backup_FrontAlignReady())
-            {
-                Backup_SwitchStage(BACKUP_RUSH_FORWARD, current_time);
-            }
-            else if(elapsed_time >= BACKUP_SPIN_TIME_MS)
             {
                 Backup_SwitchStage(BACKUP_RUSH_FORWARD, current_time);
             }
             break;
 
         case BACKUP_RUSH_FORWARD:
-            drive_For_H();
+            drive_For_L();
             if(Backup_ShouldRushBack())
             {
                 Backup_SwitchStage(BACKUP_RUSH_BACK, current_time);
@@ -94,15 +100,16 @@ void Backup_Update(void)
 
         case BACKUP_RUSH_BACK:
             drive_Back_H();
+            if(elapsed_time < BACKUP_BACK_TIME_MS)
+            {
+                break;
+            }
+            site_detect_shade();
             if(Backup_IsOnStage())
             {
-                MOTOR_StopAll();
-                Backup_Done = true;
-                Backup_Stage = BACKUP_SPIN;
-                Backup_StartTime = current_time;
-                Roaming_Init();
+                Backup_FinishRecovery(current_time);
             }
-            else if(elapsed_time >= BACKUP_BACK_TIME_MS)
+            else
             {
                 Backup_SwitchStage(BACKUP_SPIN, current_time);
             }

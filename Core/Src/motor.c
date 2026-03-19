@@ -1,3 +1,11 @@
+/*
+ * @Author: Xiang xin wang wxinxiang8@gmail.com
+ * @Date: 2026-03-18 16:12:12
+ * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
+ * @LastEditTime: 2026-03-19 18:17:44
+ * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\motor.c
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 #include "motor.h"
 #include "tim.h"
 
@@ -105,6 +113,22 @@ void drive_Back_H(void)
     MOTOR_SetSpeed(MOTOR_2, -SPEED_HIGH);
     MOTOR_SetSpeed(MOTOR_3, -SPEED_HIGH);
     MOTOR_SetSpeed(MOTOR_4, -SPEED_HIGH);
+}
+
+void drive_Left_L(void)//慢左右转
+{
+   MOTOR_SetSpeed(MOTOR_1, -SPEED_TURN_L);
+   MOTOR_SetSpeed(MOTOR_2, -SPEED_TURN_L);
+   MOTOR_SetSpeed(MOTOR_3, SPEED_TURN_L);
+   MOTOR_SetSpeed(MOTOR_4, SPEED_TURN_L);
+}
+
+void drive_Right_L(void)
+{
+    MOTOR_SetSpeed(MOTOR_1, SPEED_TURN_L);
+    MOTOR_SetSpeed(MOTOR_2, SPEED_TURN_L);
+    MOTOR_SetSpeed(MOTOR_3, -SPEED_TURN_L);
+    MOTOR_SetSpeed(MOTOR_4, -SPEED_TURN_L);
 }
 
 void drive_Left_M(void)//微左右转
