@@ -11,6 +11,25 @@ static uint32_t Fight_StartTime = 0;
 static bool Fight_DoneFlag = false;
 static uint32_t Fight_EngageLost = 0;     // ENGAGE中丢失目标的起始时间
 
+/**
+ * @description: 视觉精准追踪白色物块
+ * @param void
+ * @return void
+ */
+static void Fight_VisionChase(void)
+{
+    int8_t d = vision_target.dir;  // [-100, +100]
+    int16_t base = SPEED_MEDIUM;
+    int16_t turn = (int16_t)(d * 3);
+    int16_t left  = base + turn;
+    int16_t right = base - turn;
+    if (left > 1000)  left = 1000;
+    if (left < -1000) left = -1000;
+    if (right > 1000)  right = 1000;
+    if (right < -1000) right = -1000;
+    drive_user_defined(left, right);
+}
+
 /*======传感器读取======*/
 
 /**
@@ -31,9 +50,9 @@ EnemyDir Fight_GetEnemyDir(void)
     uint8_t back  = (HAL_GPIO_ReadPin(FIGHT_IR_BACK_PORT,  FIGHT_IR_BACK_PIN)  == FIGHT_IR_TRIGGERED);
 
     /*判断敌人方向*/
-    if( (ne && nw) || front)return DIR_FRONT;
-    if(nw) return DIR_FRONT_LEFT;
-    if(ne) return DIR_FRONT_RIGHT;
+    if(front)return DIR_FRONT;
+    if(nw ||(nw && front)) return DIR_FRONT_LEFT;
+    if(ne ||(ne && front)) return DIR_FRONT_RIGHT;
     if(l)  return DIR_LEFT;
     if(r)  return DIR_RIGHT;
     if(sw) return DIR_BACK_LEFT;
@@ -43,7 +62,7 @@ EnemyDir Fight_GetEnemyDir(void)
 }
 
 /**
- * @description: 灰度边缘检测(一票否决)
+ * @description: 光电边缘检测(一票否决)
  * @param void
  * @return bool
  */
@@ -87,20 +106,34 @@ void Fight_Update(void)
                 /*有目标，清除交战丢失时间*/
                 Fight_EngageLost = 0;
 
-                /*视觉判断，如果是己方能量块->回避*/
-                if (!Vision_IsTimeout() && vision_target.valid) {
-                    if (vision_target.type == 'F' || vision_target.type == 'B') {
-                        MOTOR_StopAll();
-                        Fight_State    = FIGHT_DONE;
-                        Fight_DoneFlag = true;
-                        break;
-                    }
+                /*正面接触后重置交战时间*/
+                if(dir == DIR_FRONT || dir == DIR_FRONT_LEFT || dir == DIR_FRONT_RIGHT)
+                {
+                    Fight_StartTime = now;
+                }
+
+                /*视觉判断*/
+                uint8_t vision_ok = (!Vision_IsTimeout() && vision_target.valid);
+
+                /*己方能量块->回避*/
+                if (vision_ok && (vision_target.type == 'F' || vision_target.type == 'B')) {
+                    MOTOR_StopAll();
+                    Fight_State    = FIGHT_DONE;
+                    Fight_DoneFlag = true;
+                    break;
+                }
+
+                /*白色能量块*/
+                if(vision_ok && vision_target.type == 'N' )
+                {
+                    Fight_VisionChase();
+                    break;
                 }
 
                 switch(dir)
                 {
                     case DIR_FRONT:
-                        drive_For_H(); 
+                        drive_For_M(); 
                         break;
                     case DIR_FRONT_LEFT:
                         drive_ArcLeft_M();
@@ -143,7 +176,7 @@ void Fight_Update(void)
             /*交战超时，后退*/
             if(elapsed >= FIGHT_ENGAGE_TIMEOUT)
             {
-                Fight_State = FIGHT_RETREAT;
+                Fight_State = FIGHT_DONE;
                 Fight_StartTime = now;
             }
             break;

@@ -26,7 +26,7 @@
 #define FIGHT_IR_TRIGGERED GPIO_PIN_SET
 
 /*======时间参数(ms)======*/
-#define FIGHT_ENGAGE_TIMEOUT 1500 //交战时间
+#define FIGHT_ENGAGE_TIMEOUT 3000 //交战时间
 #define FIGHT_ENGAGE_LOST 500 //交战丢失时间
 #define FIGHT_RETREAT_TIME 400 //撤退时间
 

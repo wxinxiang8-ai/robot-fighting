@@ -38,6 +38,7 @@
 #include "robot_roaming.h"
 #include "robot_backup.h"
 #include "robot_control.h"
+#include "vision_parser.h"
 #include <stdio.h>
 /* USER CODE END Includes */
 
@@ -121,6 +122,7 @@ int main(void)
   Backup_Init();
   MOTOR_StopAll();
   Startup_WaitForTrigger();
+  Vision_Init();
   Robot_Control_Init();
   /* USER CODE END 2 */
 
