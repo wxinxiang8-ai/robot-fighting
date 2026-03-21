@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-03-15 15:20:29
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-19 20:43:18
+ * @LastEditTime: 2026-03-21 13:18:18
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_backup.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -43,7 +43,7 @@ static void Backup_SwitchStage(BackupStage_t next_stage, uint32_t current_time)
 
 static int Backup_IsOnStage(void)
 {
-    return (voltage[0] < 2.8f && voltage[1] < 2.8f);
+    return (voltage[0] < 2.7f && voltage[1] < 2.7f);
 }
 
 static int Backup_FrontAlignReady(void)

@@ -26,5 +26,8 @@ extern Obs_Sensors_t Obs_Data;
 // 函数声明
 void Obs_Sensor_Init(void);
 void Obs_Sensor_ReadAll(void);
+void Edge_Sensor_Detect(void);
+void Enmy_Sensor_Detect(void);
+
 
 #endif // OBSTACLE_H

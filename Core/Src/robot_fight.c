@@ -49,8 +49,8 @@ EnemyDir Fight_GetEnemyDir(void)
  */
 static bool Fight_EdgeDetected(void)
 {
-    site_detect_shade();
-    return (voltage[0] >3.0f || voltage[1] > 3.0f); // 任一传感器检测到边缘
+    Edge_Sensor_Detect();
+    return (Obs_Data.IR1 == SET || Obs_Data.IR2 == SET);
 }
 
 /*======状态机======*/

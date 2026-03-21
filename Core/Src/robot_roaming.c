@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-02-01 14:52:47
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-19 19:59:52
+ * @LastEditTime: 2026-03-21 13:40:00
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_roaming.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -44,7 +44,7 @@ static int detect_shade(void)
 {
     site_detect_shade();//read shade sensor data
 
-    if(voltage[0] > 2.8f && voltage[1] > 2.8f)
+    if(voltage[0] > 2.7f && voltage[1] > 2.7f)
     {
         return 1;
     }
@@ -94,7 +94,9 @@ void Roaming_Update(void)
             drive_For_L();
             
             // 读取障碍物传感器
-            Obs_Sensor_ReadAll();
+            Edge_Sensor_Detect();
+            
+             // 根据传感器状态决定是否后退
             
             if(Obs_Data.IR1 == SET && Obs_Data.IR2 == SET)
             {
