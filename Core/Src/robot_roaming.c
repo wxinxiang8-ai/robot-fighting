@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-02-01 14:52:47
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-21 13:40:00
+ * @LastEditTime: 2026-03-24 22:05:28
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_roaming.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -34,6 +34,8 @@ static uint32_t Roaming_StartTime = 0;
 static bool Roaming_Done = false;
 static RoamingBackReason Roaming_BackReason = BACK_REASON_NONE;
 static uint32_t Roaming_TurnTime = ROAMING_TURN_TIME;
+static RoamingBackReason Roaming_PendingBackReason = BACK_REASON_NONE;
+static uint32_t Roaming_BackDebounceStart = 0;
 
 /**
  * @description: 检测是否掉落擂台
@@ -66,6 +68,8 @@ void Roaming_Init(void)
     Roaming_StartTime = HAL_GetTick();
     Roaming_Done = false;
     Roaming_BackReason = BACK_REASON_NONE;
+    Roaming_PendingBackReason = BACK_REASON_NONE;
+    Roaming_BackDebounceStart = 0;
 }
 
 /**
@@ -94,37 +98,51 @@ void Roaming_Update(void)
             drive_For_L();
             
             // 读取障碍物传感器
-            Edge_Sensor_Detect();
+            Obs_Sensor_ReadAll();
             
              // 根据传感器状态决定是否后退
-            
+
+            RoamingBackReason current_reason = BACK_REASON_NONE;
             if(Obs_Data.IR1 == SET && Obs_Data.IR2 == SET)
             {
                 // 两侧都检测到悬崖，后退
-                Roaming_BackReason = BACK_REASON_BOTH;
-                Roaming_Stage = ROAMING_BACK;
-                Roaming_StartTime = current_time;
+                current_reason = BACK_REASON_BOTH;
             }
             else if(Obs_Data.IR1 == SET && Obs_Data.IR2 == RESET)
             {
                 // 左侧检测到悬崖，后退准备右转
-                Roaming_BackReason = BACK_REASON_LEFT;
-                Roaming_Stage = ROAMING_BACK;
-                Roaming_StartTime = current_time;
+                current_reason = BACK_REASON_RIGHT;
             }
             else if(Obs_Data.IR1 == RESET && Obs_Data.IR2 == SET)
             {
                 // 右侧检测到悬崖，后退准备左转
-                Roaming_BackReason = BACK_REASON_RIGHT;
+                current_reason = BACK_REASON_LEFT;
+            }
+
+            if(current_reason == BACK_REASON_NONE)
+            {
+                Roaming_PendingBackReason = BACK_REASON_NONE;
+                Roaming_BackDebounceStart = 0;
+            }
+            else if(current_reason != Roaming_PendingBackReason)
+            {
+                Roaming_PendingBackReason = current_reason;
+                Roaming_BackDebounceStart = current_time;
+            }
+            else if((current_time - Roaming_BackDebounceStart) >= ROAMING_EDGE_DEBOUNCE_MS)
+            {
+                Roaming_BackReason = current_reason;
                 Roaming_Stage = ROAMING_BACK;
                 Roaming_StartTime = current_time;
+                Roaming_PendingBackReason = BACK_REASON_NONE;
+                Roaming_BackDebounceStart = 0;
             }
             // 否则继续前进
             break;
             
         case ROAMING_BACK:
             // 后退状态
-            drive_Back_M();
+            drive_Back_L();
             
             if(elapsed_time >= ROAMING_BACK_TIME)
             {
@@ -136,12 +154,12 @@ void Roaming_Update(void)
                 }
                 else if(Roaming_BackReason == BACK_REASON_LEFT)
                 {
-                    Roaming_Stage = ROAMING_TURN_RIGHT;
+                    Roaming_Stage = ROAMING_TURN_LEFT;
                     Roaming_TurnTime = ROAMING_TURN_TIME;
                 }
                 else if(Roaming_BackReason == BACK_REASON_RIGHT)
                 {
-                    Roaming_Stage = ROAMING_TURN_LEFT;
+                    Roaming_Stage = ROAMING_TURN_RIGHT;
                     Roaming_TurnTime = ROAMING_TURN_TIME;
                 }
                 else
@@ -157,7 +175,7 @@ void Roaming_Update(void)
             
         case ROAMING_TURN_LEFT:
             // 左转状态
-            drive_Left_M();
+            drive_Right_M();
             
             if(elapsed_time >= Roaming_TurnTime)
             {
@@ -169,7 +187,7 @@ void Roaming_Update(void)
             
         case ROAMING_TURN_RIGHT:
             // 右转状态
-            drive_Right_M();
+            drive_Left_M();
             
             if(elapsed_time >= Roaming_TurnTime)
             {

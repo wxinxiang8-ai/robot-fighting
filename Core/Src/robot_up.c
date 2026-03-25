@@ -43,7 +43,7 @@ TeamColor Startup_WaitForTrigger(void)
             left_hold = 0;
         }
         /*右侧遮挡 蓝方*/
-        if(right == STARTUP_BLOCKED_STATE)
+        if(right == STARTUP_UNBLOCKED_STATE)
         {
             right_hold += dt;
             if(right_hold >= STARTUP_DEBOUNCE_MS)
