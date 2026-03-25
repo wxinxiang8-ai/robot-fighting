@@ -32,8 +32,8 @@ typedef enum {
 /*======时间参数======*/
 #define ROAMING_BACK_TIME  500   // 后退时间
 #define ROAMING_BACKAND_TURN_TIME  500   // 后退并转向时间
-#define ROAMING_TURN_TIME  300   // 转向时间
-#define ROAMING_FORWARD_TIME 300 // 前进时间
+#define ROAMING_TURN_TIME  350   // 转向时间
+#define ROAMING_FORWARD_TIME 250 // 前进时间
 #define ROAMING_EDGE_DEBOUNCE_MS 20 // 边缘光电消抖时间
 
 void Roaming_Init(void);

@@ -8,8 +8,8 @@
 
 // 预定义速度等级
 #define SPEED_LOW           300         // 低速(30%)
-#define SPEED_MEDIUM        600         // 中速(60%)
-#define SPEED_HIGH          800         // 高速(90%)
+#define SPEED_MEDIUM        500         // 中速(50%)
+#define SPEED_HIGH          800         // 高速(80%)
 
 // 转向速度
 #define SPEED_TURN_L        200         // 慢转向速度(20%)

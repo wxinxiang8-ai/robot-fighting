@@ -91,18 +91,20 @@ void Roaming_Update(void)
         return;
     }
     
+    RoamingBackReason current_reason = BACK_REASON_NONE;
+
     switch(Roaming_Stage)
     {
         case ROAMING_FORWARD:
             // 前进状态
             drive_For_L();
-            
+
             // 读取障碍物传感器
             Obs_Sensor_ReadAll();
-            
+
              // 根据传感器状态决定是否后退
 
-            RoamingBackReason current_reason = BACK_REASON_NONE;
+            current_reason = BACK_REASON_NONE;
             if(Obs_Data.IR1 == SET && Obs_Data.IR2 == SET)
             {
                 // 两侧都检测到悬崖，后退
@@ -175,7 +177,7 @@ void Roaming_Update(void)
             
         case ROAMING_TURN_LEFT:
             // 左转状态
-            drive_Right_M();
+            drive_Left_M();
             
             if(elapsed_time >= Roaming_TurnTime)
             {
@@ -187,7 +189,7 @@ void Roaming_Update(void)
             
         case ROAMING_TURN_RIGHT:
             // 右转状态
-            drive_Left_M();
+            drive_Right_M();
             
             if(elapsed_time >= Roaming_TurnTime)
             {

@@ -1,11 +1,3 @@
-/*
- * @Author: Xiang xin wang wxinxiang8@gmail.com
- * @Date: 2026-03-19 12:37:14
- * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-24 22:05:43
- * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Inc\robot_up.h
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
- */
 #ifndef __ROBOT_UP_H
 #define __ROBOT_UP_H
 
@@ -14,14 +6,14 @@
 
 /*======非接触式启动======*/
 /*引脚定义*/
-#define STARTUP_LEFT_PIN IR_5_Pin
-#define STARTUP_LEFT_PORT IR_5_GPIO_Port
+#define STARTUP_LEFT_PIN IR_9_Pin
+#define STARTUP_LEFT_PORT IR_9_GPIO_Port
 #define STARTUP_RIGHT_PIN IR_7_Pin
 #define STARTUP_RIGHT_PORT IR_7_GPIO_Port
 
-/* 遮挡时传感器输出电平（当前逻辑：遮挡=1，未遮挡=0）*/
-#define STARTUP_BLOCKED_STATE GPIO_PIN_SET
-#define STARTUP_UNBLOCKED_STATE GPIO_PIN_RESET
+/* 遮挡时传感器输出电平（遮挡=0，未遮挡=1）*/
+#define STARTUP_BLOCKED_STATE GPIO_PIN_RESET
+#define STARTUP_UNBLOCKED_STATE GPIO_PIN_SET
 
 /*消抖时间*/
 #define STARTUP_DEBOUNCE_MS 80

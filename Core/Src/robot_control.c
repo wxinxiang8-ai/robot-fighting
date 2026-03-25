@@ -6,11 +6,13 @@
 #include "motor.h"
 
 static RobotState robot_state;
+static uint8_t enemy_confirm_count = 0;
 
 void Robot_Control_Init(void)
 {
     GoUp_Init();
     robot_state = ROBOT_GO_UP;
+    enemy_confirm_count = 0;
 }
 
 void Robot_Control_Update(void)
@@ -33,11 +35,32 @@ void Robot_Control_Update(void)
                 MOTOR_StopAll();
                 Backup_Init();
                 robot_state = ROBOT_BACKUP;
+                break;
+            }
+            /* 漫游中发现敌人 → 连续确认后进攻 */
+            if (Fight_GetEnemyDir() != DIR_NONE)
+            {
+                enemy_confirm_count++;
+                if (enemy_confirm_count >= 2)
+                {
+                    Fight_Init();
+                    robot_state = ROBOT_ATTACK;
+                    enemy_confirm_count = 0;
+                }
+            }
+            else
+            {
+                enemy_confirm_count = 0;
             }
             break;
 
         case ROBOT_ATTACK:
-            /* 暂未接入 */
+            Fight_Update();
+            if (Fight_IsDone())
+            {
+                Roaming_Init();
+                robot_state = ROBOT_ROAMING;
+            }
             break;
 
         case ROBOT_BACKUP:

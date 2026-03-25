@@ -1,6 +1,7 @@
 #include "motor.h"
 #include "robot_up.h"
 #include "usart.h"
+#include <stdbool.h>
 
 static GoUpState GoUp_Stage = GOUP_RUSH;
 static uint32_t GoUp_StartTime = 0;
@@ -43,7 +44,7 @@ TeamColor Startup_WaitForTrigger(void)
             left_hold = 0;
         }
         /*右侧遮挡 蓝方*/
-        if(right == STARTUP_UNBLOCKED_STATE)
+        if((right) == STARTUP_BLOCKED_STATE)
         {
             right_hold += dt;
             if(right_hold >= STARTUP_DEBOUNCE_MS)
@@ -99,8 +100,8 @@ void GoUp_Update()
     switch(GoUp_Stage)
     {
         case GOUP_RUSH:
-            /*全速倒退冲台*/
-            drive_Back_H();
+            /*自定义速度倒退冲台*/
+            drive_user_defined(-900, -900);
             if(elapsed_time >= GOUP_RUSH_TIME)
             {
                 GoUp_Stage = GOUP_TURN;

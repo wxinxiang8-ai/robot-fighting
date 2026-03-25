@@ -10,6 +10,9 @@ static FightState Fight_State = FIGHT_ENGAGE;
 static uint32_t Fight_StartTime = 0;
 static bool Fight_DoneFlag = false;
 static uint32_t Fight_EngageLost = 0;     // ENGAGE中丢失目标的起始时间
+static EnemyDir Fight_PrevRawDir = DIR_NONE;
+static EnemyDir Fight_StableDir  = DIR_NONE;
+static uint8_t Fight_EdgeCount = 0;
 
 /**
  * @description: 视觉精准追踪白色物块
@@ -43,7 +46,7 @@ EnemyDir Fight_GetEnemyDir(void)
     uint8_t nw    = (HAL_GPIO_ReadPin(FIGHT_IR_NW_PORT,    FIGHT_IR_NW_PIN)    == FIGHT_IR_TRIGGERED);
     uint8_t ne    = (HAL_GPIO_ReadPin(FIGHT_IR_NE_PORT,    FIGHT_IR_NE_PIN)    == FIGHT_IR_TRIGGERED);
     uint8_t l     = (HAL_GPIO_ReadPin(FIGHT_IR_L_PORT,     FIGHT_IR_L_PIN)     != FIGHT_IR_TRIGGERED);
-    uint8_t r     = (HAL_GPIO_ReadPin(FIGHT_IR_R_PORT,     FIGHT_IR_R_PIN)     != FIGHT_IR_TRIGGERED);
+    uint8_t r     = (HAL_GPIO_ReadPin(FIGHT_IR_R_PORT,     FIGHT_IR_R_PIN)     != FIGHT_IR_TRIGGERED);;
     uint8_t sw    = (HAL_GPIO_ReadPin(FIGHT_IR_SW_PORT,    FIGHT_IR_SW_PIN)    == FIGHT_IR_TRIGGERED);
     uint8_t se    = (HAL_GPIO_ReadPin(FIGHT_IR_SE_PORT,    FIGHT_IR_SE_PIN)    == FIGHT_IR_TRIGGERED);
     uint8_t front = (HAL_GPIO_ReadPin(FIGHT_IR_FRONT_PORT, FIGHT_IR_FRONT_PIN) == FIGHT_IR_TRIGGERED);
@@ -80,21 +83,37 @@ void Fight_Init(void)
     Fight_DoneFlag = false;
     Fight_StartTime = HAL_GetTick();
     Fight_EngageLost = 0;
+    Fight_PrevRawDir = DIR_NONE;
+    Fight_StableDir  = DIR_NONE;
+    Fight_EdgeCount = 0;
 }
 
 void Fight_Update(void)
 {
     uint32_t now = HAL_GetTick();
     uint32_t elapsed = now - Fight_StartTime;
-    EnemyDir dir = Fight_GetEnemyDir();
+    EnemyDir raw_dir = Fight_GetEnemyDir();
+    if(raw_dir == Fight_PrevRawDir)
+    {
+        Fight_StableDir = raw_dir;
+    }
+    Fight_PrevRawDir = raw_dir;
+    EnemyDir dir = Fight_StableDir;
 
-    /*======边缘安全======*/
+    /*======边缘安全：连续确认后后退再回漫游======*/
     if(Fight_EdgeDetected())
     {
-        MOTOR_StopAll();
-        Fight_State = FIGHT_RETREAT;
-        Fight_StartTime = now;
-        return;
+        Fight_EdgeCount++;
+        if(Fight_EdgeCount >= 3 && Fight_State != FIGHT_RETREAT)
+        {
+            Fight_State = FIGHT_RETREAT;
+            Fight_StartTime = now;
+            return;
+        }
+    }
+    else
+    {
+        Fight_EdgeCount = 0;
     }
 
     switch(Fight_State)
@@ -136,10 +155,10 @@ void Fight_Update(void)
                         drive_For_M(); 
                         break;
                     case DIR_FRONT_LEFT:
-                        drive_ArcLeft_M();
+                        drive_Left_M();
                         break;
                     case DIR_FRONT_RIGHT:
-                        drive_ArcRight_M();
+                        drive_Right_M();
                         break;
                     case DIR_LEFT:
                         drive_Left_M();
@@ -186,18 +205,19 @@ void Fight_Update(void)
             drive_Back_M();
             if(elapsed >= FIGHT_RETREAT_TIME)
             {
-                if(dir != DIR_NONE)
-                {
-                    Fight_State = FIGHT_ENGAGE;
-                    Fight_StartTime = now;
-                    Fight_EngageLost = 0;
-                }
-                else
-                {
-                    MOTOR_StopAll();
-                    Fight_State = FIGHT_DONE;
-                    Fight_DoneFlag = true;
-                }
+                Fight_State = FIGHT_TURN;
+                Fight_StartTime = now;
+            }
+            break;
+
+        /*======掉头状态======*/
+        case FIGHT_TURN:
+            drive_Left_S();
+            if(elapsed >= FIGHT_TURN_TIME)
+            {
+                MOTOR_StopAll();
+                Fight_State = FIGHT_DONE;
+                Fight_DoneFlag = true;
             }
             break;
 
