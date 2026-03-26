@@ -1,3 +1,11 @@
+/*
+ * @Author: Xiang xin wang wxinxiang8@gmail.com
+ * @Date: 2026-03-26 10:02:45
+ * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
+ * @LastEditTime: 2026-03-26 18:07:24
+ * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Inc\motor.h
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 #ifndef __MOTOR_H__
 #define __MOTOR_H__
 #include <stdint.h>
@@ -15,6 +23,7 @@
 #define SPEED_TURN_L        200         // 慢转向速度(20%)
 #define SPEED_TURN_M        400         // 中等转向速度(40%)
 #define SPEED_TURN_S        600         // 快速转向速度(60%)
+#define SPEED_TURN_R        500         // 漫游转向速度(50%)
 
 // 弧线转向速度
 #define SPEED_ARC_INNER_M   300         // 中速弧线内侧(20%)
@@ -50,6 +59,9 @@ void drive_Right_M(void);
 
 void drive_Left_S(void);//超级左右转
 void drive_Right_S(void);
+
+void drive_Left_Roaming(void);//漫游左右转
+void drive_Right_Roaming(void);
 
 void drive_Retreat_L(void);//后退左转
 void drive_Retreat_R(void);//后退右转
