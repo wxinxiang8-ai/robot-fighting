@@ -48,13 +48,23 @@ static int Backup_IsOnStage(void)
 
 static int Backup_FrontAlignReady(void)
 {
-    return (Obs_Data.IR2 == RESET && Obs_Data.IR5 == SET &&
-            Obs_Data.IR7 == SET);
+    return (Obs_Data.IR7 == SET && Obs_Data.IR9 == SET &&
+            Obs_Data.IR4 == RESET);
 }
 
 static int Backup_ShouldRushBack(void)
 {
-    return (Obs_Data.IR1 == RESET && Obs_Data.IR3 == RESET);
+    static uint8_t count = 0;
+    if(Obs_Data.IR5 == RESET && Obs_Data.IR3 == RESET)
+    {
+        count++;
+        if(count >= 3) { count = 0; return 1; }
+    }
+    else
+    {
+        count = 0;
+    }
+    return 0;
 }
 
 void Backup_Init(void)
@@ -87,14 +97,17 @@ void Backup_Update(void)
             break;
 
         case BACKUP_RUSH_FORWARD:
-            drive_For_L();
             if(Backup_ShouldRushBack())
             {
                 Backup_SwitchStage(BACKUP_RUSH_BACK, current_time);
             }
             else if(elapsed_time >= BACKUP_FORWARD_TIME_MS)
             {
-                Backup_SwitchStage(BACKUP_RUSH_BACK, current_time);
+                MOTOR_StopAll();
+            }
+            else
+            {
+                drive_For_L();
             }
             break;
 

@@ -20,9 +20,9 @@
 #include "main.h"
 #include <stdbool.h>
 
-#define BACKUP_SPIN_TIME_MS      500
-#define BACKUP_FORWARD_TIME_MS   800
-#define BACKUP_BACK_TIME_MS      500
+#define BACKUP_SPIN_TIME_MS      1000
+#define BACKUP_FORWARD_TIME_MS   1750
+#define BACKUP_BACK_TIME_MS      750
 
 void Backup_Init(void);
 void Backup_Update(void);

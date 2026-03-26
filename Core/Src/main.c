@@ -51,6 +51,7 @@
 /* USER CODE BEGIN PD */
 #define SHADE_OLED_TEST_MODE 0
 #define BACKUP_TEST_MODE     1
+#define IR_OLED_TEST_MODE    0
 
 /* USER CODE END PD */
 
@@ -132,6 +133,13 @@ int main(void)
   MOTOR_Init();
   Backup_Init();
   MOTOR_StopAll();
+#elif IR_OLED_TEST_MODE
+  OLED_Init();
+  OLED_Clear();
+  Obs_Sensor_Init();
+  OLED_ShowString(1, 1, "IR Sensor Test");
+  OLED_ShowString(2, 1, "IR3:");
+  OLED_ShowString(3, 1, "IR5:");
 #else
   Obs_Sensor_Init();
   MOTOR_Init();
@@ -174,6 +182,11 @@ int main(void)
       MOTOR_StopAll();
     }
     HAL_Delay(10);
+#elif IR_OLED_TEST_MODE
+    Obs_Sensor_ReadAll();
+    OLED_ShowString(2, 5, Obs_Data.IR3 == GPIO_PIN_SET ? "SET  " : "RESET");
+    OLED_ShowString(3, 5, Obs_Data.IR5 == GPIO_PIN_SET ? "SET  " : "RESET");
+    HAL_Delay(100);
 #else
     Robot_Control_Update();
     HAL_Delay(10);
