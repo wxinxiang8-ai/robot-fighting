@@ -10,12 +10,13 @@
 #define SPEED_LOW           300         // 低速(30%)
 #define SPEED_MEDIUM        500         // 中速(50%)
 #define SPEED_HIGH          800         // 高速(80%)
+#define SPEED_ROAMING       350         // 漫游速度(35%)
 
 // 转向速度
 #define SPEED_TURN_L        200         // 慢转向速度(20%)
 #define SPEED_TURN_M        400         // 中等转向速度(40%)
 #define SPEED_TURN_S        600         // 快速转向速度(60%)
-#define SPEED_TURN_R        500         // 漫游转向速度(50%)
+#define SPEED_TURN_R        375         // 漫游转向速度(50%)
 
 
 typedef enum{
@@ -35,6 +36,7 @@ void MOTOR_SetSpeed(MOTOR_ID motor_id, int16_t speed);
 void drive_For_L(void);//前进(低中高)
 void drive_For_M(void);
 void drive_For_H(void);
+void drive_For_Roaming(void);
 
 void drive_Back_L(void);//后退(低中高)
 void drive_Back_M(void);

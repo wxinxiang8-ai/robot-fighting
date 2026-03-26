@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-02-01 14:52:47
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-24 22:05:28
+ * @LastEditTime: 2026-03-26 18:49:40
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_roaming.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -97,7 +97,7 @@ void Roaming_Update(void)
     {
         case ROAMING_FORWARD:
             // 前进状态
-            drive_For_L();
+            drive_For_Roaming();
 
             // 读取障碍物传感器
             Obs_Sensor_ReadAll();
