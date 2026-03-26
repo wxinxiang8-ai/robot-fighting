@@ -49,6 +49,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define SHADE_OLED_TEST_MODE 0
+#define BACKUP_TEST_MODE     1
 
 /* USER CODE END PD */
 
@@ -116,7 +118,21 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM9_Init();
   /* USER CODE BEGIN 2 */
-
+  
+#if SHADE_OLED_TEST_MODE
+  OLED_Init();
+  OLED_Clear();
+  Shade_Sensor_Init();
+  OLED_ShowString(1, 1, "Gray Sensor Test");
+  OLED_ShowString(2, 1, "A0:---- A1:----");
+  OLED_ShowString(3, 1, "V0: -.---V");
+  OLED_ShowString(4, 1, "V1: -.---V");
+#elif BACKUP_TEST_MODE
+  Obs_Sensor_Init();
+  MOTOR_Init();
+  Backup_Init();
+  MOTOR_StopAll();
+#else
   Obs_Sensor_Init();
   MOTOR_Init();
   Backup_Init();
@@ -124,6 +140,7 @@ int main(void)
   Startup_WaitForTrigger();
   Vision_Init();
   Robot_Control_Init();
+#endif
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -131,8 +148,36 @@ int main(void)
 
   while (1)
   {
+#if SHADE_OLED_TEST_MODE
+    site_detect_shade();
+
+    uint32_t adc0 = shade[0];
+    uint32_t adc1 = shade[1];
+  uint32_t mv0 = (uint32_t)(voltage[0] * 1000.0f + 0.5f);
+  uint32_t mv1 = (uint32_t)(voltage[1] * 1000.0f + 0.5f);
+  char line2[17] = {0};
+  char line3[17] = {0};
+  char line4[17] = {0};
+
+  snprintf(line2, sizeof(line2), "A0:%4lu A1:%4lu", adc0, adc1);
+  snprintf(line3, sizeof(line3), "V0:%1lu.%03luV", mv0 / 1000U, mv0 % 1000U);
+  snprintf(line4, sizeof(line4), "V1:%1lu.%03luV", mv1 / 1000U, mv1 % 1000U);
+
+  OLED_ShowString(2, 1, line2);
+  OLED_ShowString(3, 1, line3);
+  OLED_ShowString(4, 1, line4);
+    HAL_Delay(100);
+#elif BACKUP_TEST_MODE
+    Backup_Update();
+    if (Backup_IsDone())
+    {
+      MOTOR_StopAll();
+    }
+    HAL_Delay(10);
+#else
     Robot_Control_Update();
     HAL_Delay(10);
+#endif
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
