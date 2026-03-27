@@ -49,8 +49,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define SHADE_OLED_TEST_MODE 0
-#define BACKUP_TEST_MODE     1
+#define SHADE_OLED_TEST_MODE 1
+#define BACKUP_TEST_MODE     0
 #define IR_OLED_TEST_MODE    0
 
 /* USER CODE END PD */
@@ -74,6 +74,10 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#if BACKUP_TEST_MODE
+#define BACKUP_TEST_OFF_STAGE_ADC 3800U
+#define BACKUP_TEST_ON_STAGE_ADC  1000U
+#endif
 
 /* USER CODE END 0 */
 
@@ -137,9 +141,7 @@ int main(void)
   OLED_Init();
   OLED_Clear();
   Obs_Sensor_Init();
-  OLED_ShowString(1, 1, "IR Sensor Test");
-  OLED_ShowString(2, 1, "IR3:");
-  OLED_ShowString(3, 1, "IR5:");
+  OLED_ShowString(1, 1, "IR1-IR10 Level");
 #else
   Obs_Sensor_Init();
   MOTOR_Init();
@@ -176,6 +178,19 @@ int main(void)
   OLED_ShowString(4, 1, line4);
     HAL_Delay(100);
 #elif BACKUP_TEST_MODE
+    if (!Backup_IsDone())
+    {
+      /* default off-stage */
+      shade[0] = BACKUP_TEST_OFF_STAGE_ADC;
+      shade[1] = BACKUP_TEST_OFF_STAGE_ADC;
+    }
+    else
+    {
+      /* after completion, default on-stage (1) */
+      shade[0] = BACKUP_TEST_ON_STAGE_ADC;
+      shade[1] = BACKUP_TEST_ON_STAGE_ADC;
+    }
+
     Backup_Update();
     if (Backup_IsDone())
     {
@@ -183,9 +198,31 @@ int main(void)
     }
     HAL_Delay(10);
 #elif IR_OLED_TEST_MODE
+  char line2[17] = {0};
+  char line3[17] = {0};
+  char line4[17] = {0};
+
     Obs_Sensor_ReadAll();
-    OLED_ShowString(2, 5, Obs_Data.IR3 == GPIO_PIN_SET ? "SET  " : "RESET");
-    OLED_ShowString(3, 5, Obs_Data.IR5 == GPIO_PIN_SET ? "SET  " : "RESET");
+
+  snprintf(line2, sizeof(line2), "1:%d 2:%d 3:%d 4:%d",
+       Obs_Data.IR1 == GPIO_PIN_SET ? 1 : 0,
+       Obs_Data.IR2 == GPIO_PIN_SET ? 1 : 0,
+       Obs_Data.IR3 == GPIO_PIN_SET ? 1 : 0,
+       Obs_Data.IR4 == GPIO_PIN_SET ? 1 : 0);
+
+  snprintf(line3, sizeof(line3), "5:%d 6:%d 7:%d 8:%d",
+       Obs_Data.IR5 == GPIO_PIN_SET ? 1 : 0,
+       Obs_Data.IR6 == GPIO_PIN_SET ? 1 : 0,
+       Obs_Data.IR7 == GPIO_PIN_SET ? 1 : 0,
+       Obs_Data.IR8 == GPIO_PIN_SET ? 1 : 0);
+
+  snprintf(line4, sizeof(line4), "9:%d 10:%d",
+       Obs_Data.IR9 == GPIO_PIN_SET ? 1 : 0,
+       Obs_Data.IR10 == GPIO_PIN_SET ? 1 : 0);
+
+  OLED_ShowString(2, 1, line2);
+  OLED_ShowString(3, 1, line3);
+  OLED_ShowString(4, 1, line4);
     HAL_Delay(100);
 #else
     Robot_Control_Update();

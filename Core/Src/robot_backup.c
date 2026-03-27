@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-03-15 15:20:29
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-21 13:18:18
+ * @LastEditTime: 2026-03-27 15:29:04
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_backup.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -17,7 +17,10 @@ extern float voltage[2];
 typedef enum {
     BACKUP_SPIN = 0,
     BACKUP_RUSH_FORWARD,
-    BACKUP_RUSH_BACK
+    BACKUP_RUSH_BACK,
+    BACKUP_ESCAPE_BACK,
+    BACKUP_ESCAPE_TURN,
+    BACKUP_RETRY_FORWARD
 } BackupStage_t;
 
 static BackupStage_t Backup_Stage = BACKUP_SPIN;
@@ -26,8 +29,8 @@ static bool Backup_Done = false;
 
 static void Backup_FinishRecovery(uint32_t current_time)
 {
-    drive_Left_M();
-    HAL_Delay(200);
+    drive_Left_S();
+    HAL_Delay(BACKUP_TURN_TIME_MS);
     MOTOR_StopAll();
     Backup_Done = true;
     Backup_Stage = BACKUP_SPIN;
@@ -54,17 +57,7 @@ static int Backup_FrontAlignReady(void)
 
 static int Backup_ShouldRushBack(void)
 {
-    static uint8_t count = 0;
-    if(Obs_Data.IR5 == RESET && Obs_Data.IR3 == RESET)
-    {
-        count++;
-        if(count >= 3) { count = 0; return 1; }
-    }
-    else
-    {
-        count = 0;
-    }
-    return 0;
+    return (Obs_Data.IR5 == RESET);
 }
 
 void Backup_Init(void)
@@ -97,17 +90,42 @@ void Backup_Update(void)
             break;
 
         case BACKUP_RUSH_FORWARD:
-            if(Backup_ShouldRushBack())
+            if(elapsed_time < BACKUP_FORWARD_TIME_MS)
+            {
+                drive_For_L();
+            }
+            else if(Backup_ShouldRushBack())
             {
                 Backup_SwitchStage(BACKUP_RUSH_BACK, current_time);
             }
-            else if(elapsed_time >= BACKUP_FORWARD_TIME_MS)
-            {
-                MOTOR_StopAll();
-            }
             else
             {
-                drive_For_L();
+                drive_Back_L();
+                Backup_SwitchStage(BACKUP_ESCAPE_BACK, current_time);
+            }
+            break;
+
+        case BACKUP_ESCAPE_BACK:
+            drive_Back_L();
+            if(elapsed_time >= BACKUP_ESCAPE_BACK_TIME_MS)
+            {
+                Backup_SwitchStage(BACKUP_ESCAPE_TURN, current_time);
+            }
+            break;
+
+        case BACKUP_ESCAPE_TURN:
+            drive_Left_S();
+            if(elapsed_time >= BACKUP_TURN_TIME_MS)
+            {
+                Backup_SwitchStage(BACKUP_RETRY_FORWARD, current_time);
+            }
+            break;
+
+        case BACKUP_RETRY_FORWARD:
+            drive_For_L();
+            if(elapsed_time >= BACKUP_FORWARD_TIME_MS)
+            {
+                Backup_SwitchStage(BACKUP_RUSH_BACK, current_time);
             }
             break;
 
