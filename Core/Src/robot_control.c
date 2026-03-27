@@ -56,10 +56,18 @@ void Robot_Control_Update(void)
 
         case ROBOT_ATTACK:
             Fight_Update();
+            if(Fight_IsDown())
+            {
+                MOTOR_StopAll();
+                Backup_Init();
+                robot_state = ROBOT_BACKUP;
+                break;
+            }
             if (Fight_IsDone())
             {
                 Roaming_Init();
                 robot_state = ROBOT_ROAMING;
+                break;
             }
             break;
 

@@ -57,5 +57,6 @@ void     Fight_Init(void);
 void     Fight_Update(void);
 bool     Fight_IsDone(void);
 EnemyDir Fight_GetEnemyDir(void);       // 获取敌人方向
+bool     Fight_IsDown(void);           // 检测是否掉台
 
 #endif // ROBOT_FIGHT_H
