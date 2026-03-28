@@ -8,7 +8,7 @@
 
 // 预定义速度等级
 #define SPEED_LOW           300         // 低速(30%)
-#define SPEED_MEDIUM        500         // 中速(50%)
+#define SPEED_MEDIUM        400         // 中速(50%)
 #define SPEED_HIGH          800         // 高速(80%)
 #define SPEED_ROAMING       350         // 漫游速度(35%)
 

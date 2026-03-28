@@ -49,9 +49,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define SHADE_OLED_TEST_MODE 1
+#define SHADE_OLED_TEST_MODE 0
 #define BACKUP_TEST_MODE     0
 #define IR_OLED_TEST_MODE    0
+#define VISION_OLED_TEST_MODE 0
 
 /* USER CODE END PD */
 
@@ -142,6 +143,11 @@ int main(void)
   OLED_Clear();
   Obs_Sensor_Init();
   OLED_ShowString(1, 1, "IR1-IR10 Level");
+#elif VISION_OLED_TEST_MODE
+  OLED_Init();
+  OLED_Clear();
+  Vision_Init();
+  OLED_ShowString(1, 1, "Vision Test");
 #else
   Obs_Sensor_Init();
   MOTOR_Init();
@@ -224,6 +230,29 @@ int main(void)
   OLED_ShowString(3, 1, line3);
   OLED_ShowString(4, 1, line4);
     HAL_Delay(100);
+#elif VISION_OLED_TEST_MODE
+    {
+      if (Vision_IsTimeout()) {
+        OLED_ShowString(2, 1, "No Data         ");
+        OLED_ShowString(3, 1, "                ");
+        OLED_ShowString(4, 1, "                ");
+      } else {
+        /* 第2行: T:x  dir:+xxx */
+        OLED_ShowString(2, 1, "T:  dir:        ");
+        OLED_ShowChar(2, 3, vision_target.type);
+        OLED_ShowSignedNum(2, 9, vision_target.dir, 3);
+
+        /* 第3行: cx:xxxx cy:xxxx */
+        OLED_ShowString(3, 1, "cx:     cy:     ");
+        OLED_ShowSignedNum(3, 4, vision_target.cx, 4);
+        OLED_ShowSignedNum(3, 12, vision_target.cy, 4);
+
+        /* 第4行: area:xxxxxxx */
+        OLED_ShowString(4, 1, "area:           ");
+        OLED_ShowSignedNum(4, 6, vision_target.area, 7);
+      }
+      HAL_Delay(100);
+    }
 #else
     Robot_Control_Update();
     HAL_Delay(10);

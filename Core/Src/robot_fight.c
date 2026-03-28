@@ -166,7 +166,7 @@ void Fight_Update(void)
                 /*白色能量块*/
                 if(vision_ok && vision_target.type == 'N' )
                 {
-                    Fight_VisionChase();
+                    MOTOR_StopAll();
                     break;
                 }
 
