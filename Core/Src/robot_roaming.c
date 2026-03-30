@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-02-01 14:52:47
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-26 18:49:40
+ * @LastEditTime: 2026-03-30 19:31:09
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Src\robot_roaming.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -33,7 +33,9 @@ static RoamingState Roaming_Stage = ROAMING_FORWARD;
 static uint32_t Roaming_StartTime = 0;
 static bool Roaming_Done = false;
 static RoamingBackReason Roaming_BackReason = BACK_REASON_NONE;
-static uint32_t Roaming_TurnTime = ROAMING_TURN_TIME;
+static uint32_t Roaming_TurnTimeL = ROAMING_TURN_LEFT_TIME;
+static uint32_t Roaming_TurnTimeR = ROAMING_TURN_RIGHT_TIME;
+static uint32_t Roaming_TurnTimeB = ROAMING_BACKAND_TURN_TIME;
 static RoamingBackReason Roaming_PendingBackReason = BACK_REASON_NONE;
 static uint32_t Roaming_BackDebounceStart = 0;
 
@@ -151,23 +153,23 @@ void Roaming_Update(void)
                 // 后退完成，根据触发后退时锁存的原因决定转向
                 if(Roaming_BackReason == BACK_REASON_BOTH)
                 {
-                    Roaming_Stage = ROAMING_TURN_RIGHT;
-                    Roaming_TurnTime = ROAMING_BACKAND_TURN_TIME;
+                    Roaming_Stage = ROAMING_TURN_BOTH;
+                    Roaming_TurnTimeB = ROAMING_BACKAND_TURN_TIME;
                 }
                 else if(Roaming_BackReason == BACK_REASON_LEFT)
                 {
                     Roaming_Stage = ROAMING_TURN_LEFT;
-                    Roaming_TurnTime = ROAMING_TURN_TIME;
+                    Roaming_TurnTimeL = ROAMING_TURN_LEFT_TIME;
                 }
                 else if(Roaming_BackReason == BACK_REASON_RIGHT)
                 {
                     Roaming_Stage = ROAMING_TURN_RIGHT;
-                    Roaming_TurnTime = ROAMING_TURN_TIME;
+                    Roaming_TurnTimeR = ROAMING_TURN_RIGHT_TIME;
                 }
                 else
                 {
                     Roaming_Stage = ROAMING_FORWARD;
-                    Roaming_TurnTime = ROAMING_TURN_TIME;
+                    Roaming_TurnTimeL = ROAMING_TURN_LEFT_TIME;
                 }
                 Roaming_BackReason = BACK_REASON_NONE;
                 
@@ -179,7 +181,7 @@ void Roaming_Update(void)
             // 左转状态
             drive_Left_M();
             
-            if(elapsed_time >= Roaming_TurnTime)
+            if(elapsed_time >= Roaming_TurnTimeL)
             {
                 // 转向完成，继续前进
                 Roaming_Stage = ROAMING_FORWARD;
@@ -191,7 +193,19 @@ void Roaming_Update(void)
             // 右转状态
             drive_Right_M();
             
-            if(elapsed_time >= Roaming_TurnTime)
+            if(elapsed_time >= Roaming_TurnTimeR)
+            {
+                // 转向完成，继续前进
+                Roaming_Stage = ROAMING_FORWARD;
+                Roaming_StartTime = current_time;
+            }
+            break;
+
+        case ROAMING_TURN_BOTH:
+            // 右转状态
+            drive_Right_M();
+            
+            if(elapsed_time >= Roaming_TurnTimeB)
             {
                 // 转向完成，继续前进
                 Roaming_Stage = ROAMING_FORWARD;

@@ -2,7 +2,7 @@
  * @Author: Xiang xin wang wxinxiang8@gmail.com
  * @Date: 2026-03-14 17:53:19
  * @LastEditors: Xiang xin wang wxinxiang8@gmail.com
- * @LastEditTime: 2026-03-26 19:08:02
+ * @LastEditTime: 2026-03-30 19:25:36
  * @FilePath: \MDK-ARMd:\robot fighting\robot\Core\Inc\robot_roaming.h
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -18,6 +18,7 @@ typedef enum{
     ROAMING_BACK,         // 后退状态
     ROAMING_TURN_LEFT,    // 左转状态
     ROAMING_TURN_RIGHT,   // 右转状态
+    ROAMING_TURN_BOTH,    // 后退并转向状态 
     ROAMING_DONE          // 完成状态（掉落擂台）
 }RoamingState;
 
@@ -31,8 +32,9 @@ typedef enum {
 
 /*======时间参数======*/
 #define ROAMING_BACK_TIME  550   // 后退时间
-#define ROAMING_BACKAND_TURN_TIME  620   // 后退并转向时间
-#define ROAMING_TURN_TIME  450   // 转向时间
+#define ROAMING_BACKAND_TURN_TIME  600   // 后退并转向时间
+#define ROAMING_TURN_LEFT_TIME  380   // 左转时间
+#define ROAMING_TURN_RIGHT_TIME  460   // 右转时间
 #define ROAMING_FORWARD_TIME 360 // 前进时间
 #define ROAMING_EDGE_DEBOUNCE_MS 20 // 边缘光电消抖时间
 
