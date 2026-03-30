@@ -155,18 +155,17 @@ void Fight_Update(void)
                 /*视觉判断*/
                 uint8_t vision_ok = (!Vision_IsTimeout() && vision_target.valid);
 
-                /*己方能量块->回避*/
+                /*己方能量块->后退+掉头回避*/
                 if (vision_ok && (vision_target.type == 'F' || vision_target.type == 'B')) {
-                    MOTOR_StopAll();
-                    Fight_State    = FIGHT_DONE;
-                    Fight_DoneFlag = true;
+                    Fight_State     = FIGHT_RETREAT;
+                    Fight_StartTime = now;
                     break;
                 }
 
                 /*白色能量块*/
                 if(vision_ok && vision_target.type == 'N' )
                 {
-                    MOTOR_StopAll();
+                    Fight_VisionChase();
                     break;
                 }
 
