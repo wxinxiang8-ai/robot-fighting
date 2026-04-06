@@ -30,6 +30,8 @@
 #define FIGHT_ENGAGE_LOST 500 //交战丢失时间
 #define FIGHT_RETREAT_TIME 400 //撤退时间
 #define FIGHT_TURN_TIME   550 //掉头时间(180°)
+#define FIGHT_VISION_CONFIRM_COUNT 2 //视觉类型消抖次数
+#define FIGHT_SHADE_CONFIRM_COUNT 3 //灰度掉台确认次数
 
 /*======敌人（能量块）方向======*/
 typedef enum{

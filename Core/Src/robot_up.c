@@ -29,8 +29,8 @@ TeamColor Startup_WaitForTrigger(void)
         GPIO_PinState left = HAL_GPIO_ReadPin(STARTUP_LEFT_PORT,STARTUP_LEFT_PIN);
         GPIO_PinState right = HAL_GPIO_ReadPin(STARTUP_RIGHT_PORT,STARTUP_RIGHT_PIN);
 
-        /*左侧遮挡 黄方*/
-        if(left == STARTUP_BLOCKED_STATE)
+        /*左侧IR10原始电平与其他启动光电相反，遮挡=SET -> 黄方*/
+        if(left == GPIO_PIN_SET)
         {
             left_hold += dt;
             if(left_hold >= STARTUP_DEBOUNCE_MS)
@@ -100,8 +100,20 @@ void GoUp_Update()
     switch(GoUp_Stage)
     {
         case GOUP_RUSH:
-            /*自定义速度倒退冲台*/
-            drive_user_defined(-900, -900);
+            /*梯度加速倒退冲台*/
+            if(elapsed_time < GOUP_RUSH_STAGE1_TIME)
+            {
+                drive_user_defined(-GOUP_RUSH_SPEED_STAGE1, -GOUP_RUSH_SPEED_STAGE1);
+            }
+            else if(elapsed_time < GOUP_RUSH_STAGE2_TIME)
+            {
+                drive_user_defined(-GOUP_RUSH_SPEED_STAGE2, -GOUP_RUSH_SPEED_STAGE2);
+            }
+            else
+            {
+                drive_user_defined(-GOUP_RUSH_SPEED_STAGE3, -GOUP_RUSH_SPEED_STAGE3);
+            }
+
             if(elapsed_time >= GOUP_RUSH_TIME)
             {
                 GoUp_Stage = GOUP_TURN;

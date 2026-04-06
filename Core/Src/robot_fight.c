@@ -12,7 +12,11 @@ static bool Fight_DoneFlag = false;
 static uint32_t Fight_EngageLost = 0;     // ENGAGE中丢失目标的起始时间
 static EnemyDir Fight_PrevRawDir = DIR_NONE;
 static EnemyDir Fight_StableDir  = DIR_NONE;
+static char Fight_PrevVisionType = 'X';
+static char Fight_StableVisionType = 'X';
+static uint8_t Fight_VisionTypeCount = 0;
 static uint8_t Fight_EdgeCount = 0;
+static uint8_t Fight_ShadeCount = 0;
 static bool Fight_DownFlag = false;
 
 /**
@@ -46,9 +50,9 @@ EnemyDir Fight_GetEnemyDir(void)
     /*读取八路光电传感器*/
     uint8_t nw    = (HAL_GPIO_ReadPin(FIGHT_IR_NW_PORT,    FIGHT_IR_NW_PIN)    == FIGHT_IR_TRIGGERED);
     uint8_t ne    = (HAL_GPIO_ReadPin(FIGHT_IR_NE_PORT,    FIGHT_IR_NE_PIN)    == FIGHT_IR_TRIGGERED);
-    uint8_t l     = (HAL_GPIO_ReadPin(FIGHT_IR_L_PORT,     FIGHT_IR_L_PIN)     != FIGHT_IR_TRIGGERED);
+    uint8_t l     = 0;
     uint8_t r     = (HAL_GPIO_ReadPin(FIGHT_IR_R_PORT,     FIGHT_IR_R_PIN)     != FIGHT_IR_TRIGGERED);;
-    uint8_t sw    = (HAL_GPIO_ReadPin(FIGHT_IR_SW_PORT,    FIGHT_IR_SW_PIN)    == FIGHT_IR_TRIGGERED);
+    uint8_t sw    = 0;
     uint8_t se    = (HAL_GPIO_ReadPin(FIGHT_IR_SE_PORT,    FIGHT_IR_SE_PIN)    == FIGHT_IR_TRIGGERED);
     uint8_t front = (HAL_GPIO_ReadPin(FIGHT_IR_FRONT_PORT, FIGHT_IR_FRONT_PIN) == FIGHT_IR_TRIGGERED);
     uint8_t back  = (HAL_GPIO_ReadPin(FIGHT_IR_BACK_PORT,  FIGHT_IR_BACK_PIN)  == FIGHT_IR_TRIGGERED);
@@ -84,7 +88,48 @@ static bool Fight_EdgeDetected(void)
 static bool detect_shade(void)
 {
     site_detect_shade();
-    return(voltage[0] > 2.7f && voltage[1] > 2.7f);
+
+    if(voltage[0] > 2.9f && voltage[1] > 2.9f)
+    {
+        if(Fight_ShadeCount < FIGHT_SHADE_CONFIRM_COUNT)
+        {
+            Fight_ShadeCount++;
+        }
+    }
+    else
+    {
+        Fight_ShadeCount = 0;
+    }
+
+    return (Fight_ShadeCount >= FIGHT_SHADE_CONFIRM_COUNT);
+}
+
+static char Fight_GetStableVisionType(void)
+{
+    if (Vision_IsTimeout() || !vision_target.valid)
+    {
+        Fight_PrevVisionType = 'X';
+        Fight_StableVisionType = 'X';
+        Fight_VisionTypeCount = 0;
+        return 'X';
+    }
+
+    if (vision_target.type != Fight_PrevVisionType)
+    {
+        Fight_PrevVisionType = vision_target.type;
+        Fight_VisionTypeCount = 1;
+    }
+    else if (Fight_VisionTypeCount < FIGHT_VISION_CONFIRM_COUNT)
+    {
+        Fight_VisionTypeCount++;
+    }
+
+    if (Fight_VisionTypeCount >= FIGHT_VISION_CONFIRM_COUNT)
+    {
+        Fight_StableVisionType = Fight_PrevVisionType;
+    }
+
+    return Fight_StableVisionType;
 }
 
 /*======状态机======*/
@@ -97,7 +142,11 @@ void Fight_Init(void)
     Fight_EngageLost = 0;
     Fight_PrevRawDir = DIR_NONE;
     Fight_StableDir  = DIR_NONE;
+    Fight_PrevVisionType = 'X';
+    Fight_StableVisionType = 'X';
+    Fight_VisionTypeCount = 0;
     Fight_EdgeCount = 0;
+    Fight_ShadeCount = 0;
     Fight_DownFlag = false;
 }
 
@@ -112,6 +161,7 @@ void Fight_Update(void)
     }
     Fight_PrevRawDir = raw_dir;
     EnemyDir dir = Fight_StableDir;
+    char vision_type = Fight_GetStableVisionType();
 
     /*======掉台安全======*/
     if(detect_shade())
@@ -152,18 +202,15 @@ void Fight_Update(void)
                     Fight_StartTime = now;
                 }
 
-                /*视觉判断*/
-                uint8_t vision_ok = (!Vision_IsTimeout() && vision_target.valid);
-
-                /*己方能量块->后退+掉头回避*/
-                if (vision_ok && (vision_target.type == 'F' || vision_target.type == 'B')) {
+                /*视觉类型消抖后再判断*/
+                if (vision_type == 'F' || vision_type == 'B') {
                     Fight_State     = FIGHT_RETREAT;
                     Fight_StartTime = now;
                     break;
                 }
 
                 /*白色能量块*/
-                if(vision_ok && vision_target.type == 'N' )
+                if(vision_type == 'N')
                 {
                     Fight_VisionChase();
                     break;

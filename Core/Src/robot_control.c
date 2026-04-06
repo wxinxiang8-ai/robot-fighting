@@ -7,13 +7,11 @@
 #include "vision_parser.h"
 
 static RobotState robot_state;
-static uint8_t enemy_confirm_count = 0;
 
 void Robot_Control_Init(void)
 {
     GoUp_Init();
     robot_state = ROBOT_GO_UP;
-    enemy_confirm_count = 0;
 }
 
 void Robot_Control_Update(void)
@@ -41,25 +39,25 @@ void Robot_Control_Update(void)
             /* 漫游中发现敌人 → 连续确认后进攻 */
             if (Fight_GetEnemyDir() != DIR_NONE)
             {
-                /* 视觉确认不是己方能量块才进攻 */
-                uint8_t vision_ok = (!Vision_IsTimeout() && vision_target.valid);
-                if (vision_ok && (vision_target.type == 'F' || vision_target.type == 'B'))
-                {
-                    enemy_confirm_count = 0;
-                    break;  /* 己方能量块，不进攻 */
-                }
-                enemy_confirm_count++;
-                if (enemy_confirm_count >= 2)
-                {
-                    Fight_Init();
-                    robot_state = ROBOT_ATTACK;
-                    enemy_confirm_count = 0;
-                }
+                // /* 视觉确认不是己方能量块才进攻 */
+                // uint8_t vision_ok = (!Vision_IsTimeout() && vision_target.valid);
+                // if (vision_ok && (vision_target.type == 'F' || vision_target.type == 'B'))
+                // {
+                //     enemy_confirm_count = 0;
+                //     break;  /* 己方能量块，不进攻 */
+                // }
+                // enemy_confirm_count++;
+                // if (enemy_confirm_count >= 2)
+                // {
+                Fight_Init();
+                robot_state = ROBOT_ATTACK;
+                //enemy_confirm_count = 0;
             }
-            else
-            {
-                enemy_confirm_count = 0;
-            }
+            // }
+            // else
+            // {
+            //     enemy_confirm_count = 0;
+            // }
             break;
 
         case ROBOT_ATTACK:

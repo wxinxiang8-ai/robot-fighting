@@ -46,12 +46,12 @@ static void Backup_SwitchStage(BackupStage_t next_stage, uint32_t current_time)
 
 static int Backup_IsOnStage(void)
 {
-    return (voltage[0] < 2.7f && voltage[1] < 2.7f);
+    return (voltage[0] < 2.9f && voltage[1] < 2.9f);
 }
 
 static int Backup_FrontAlignReady(void)
 {
-    return (Obs_Data.IR7 == SET && Obs_Data.IR9 == SET &&
+    return (Obs_Data.IR7 == SET &&
             Obs_Data.IR4 == RESET);
 }
 

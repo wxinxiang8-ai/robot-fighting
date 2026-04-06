@@ -38,6 +38,7 @@ static uint32_t Roaming_TurnTimeR = ROAMING_TURN_RIGHT_TIME;
 static uint32_t Roaming_TurnTimeB = ROAMING_BACKAND_TURN_TIME;
 static RoamingBackReason Roaming_PendingBackReason = BACK_REASON_NONE;
 static uint32_t Roaming_BackDebounceStart = 0;
+static uint8_t Roaming_ShadeCount = 0;
 
 /**
  * @description: 检测是否掉落擂台
@@ -48,14 +49,19 @@ static int detect_shade(void)
 {
     site_detect_shade();//read shade sensor data
 
-    if(voltage[0] > 2.7f && voltage[1] > 2.7f)
+    if(voltage[0] > 2.9f && voltage[1] > 2.9f)
     {
-        return 1;
+        if(Roaming_ShadeCount < ROAMING_SHADE_CONFIRM_COUNT)
+        {
+            Roaming_ShadeCount++;
+        }
     }
     else
     {
-        return 0;
+        Roaming_ShadeCount = 0;
     }
+
+    return (Roaming_ShadeCount >= ROAMING_SHADE_CONFIRM_COUNT);
 }
 
 /**
@@ -72,6 +78,7 @@ void Roaming_Init(void)
     Roaming_BackReason = BACK_REASON_NONE;
     Roaming_PendingBackReason = BACK_REASON_NONE;
     Roaming_BackDebounceStart = 0;
+    Roaming_ShadeCount = 0;
 }
 
 /**
