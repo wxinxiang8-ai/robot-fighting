@@ -6,6 +6,10 @@
 #define PWM_MAX_VALUE       4199        // PWM最大值(对应定时器ARR)
 #define SPEED_MAX_INPUT     1000        // 速度输入最大值
 
+// 制动参数
+#define BRAKE_PULSE_SPEED   300         // 反向脉冲速度(30%)
+#define BRAKE_PULSE_MS      30          // 反向脉冲时间(ms)
+
 // 预定义速度等级
 #define SPEED_LOW           300         // 低速(30%)
 #define SPEED_MEDIUM        400         // 中速(50%)
@@ -60,5 +64,6 @@ void drive_Retreat_R(void);//后退右转
 void drive_user_defined(int16_t left_speed, int16_t right_speed);//用户自定义速度控制
 
 void MOTOR_StopAll(void);
+void MOTOR_BrakeAll(void);  // 主动电磁制动(安全场景用)
 
 #endif

@@ -29,8 +29,8 @@ TeamColor Startup_WaitForTrigger(void)
         GPIO_PinState left = HAL_GPIO_ReadPin(STARTUP_LEFT_PORT,STARTUP_LEFT_PIN);
         GPIO_PinState right = HAL_GPIO_ReadPin(STARTUP_RIGHT_PORT,STARTUP_RIGHT_PIN);
 
-        /*左侧IR10原始电平与其他启动光电相反，遮挡=SET -> 黄方*/
-        if(left == GPIO_PIN_SET)
+        /*左侧遮挡 黄方*/
+        if(left == STARTUP_BLOCKED_STATE)
         {
             left_hold += dt;
             if(left_hold >= STARTUP_DEBOUNCE_MS)

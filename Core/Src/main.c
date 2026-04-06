@@ -49,10 +49,11 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define SHADE_OLED_TEST_MODE 0
-#define BACKUP_TEST_MODE     0
-#define IR_OLED_TEST_MODE    0
-#define VISION_OLED_TEST_MODE 0
+#define SHADE_OLED_TEST_MODE   0
+#define SHADE_UART_TEST_MODE   0
+#define BACKUP_TEST_MODE       0
+#define IR_OLED_TEST_MODE      0
+#define VISION_OLED_TEST_MODE  0
 
 /* USER CODE END PD */
 
@@ -133,6 +134,8 @@ int main(void)
   OLED_ShowString(2, 1, "A0:---- A1:----");
   OLED_ShowString(3, 1, "V0: -.---V");
   OLED_ShowString(4, 1, "V1: -.---V");
+#elif SHADE_UART_TEST_MODE
+  Shade_Sensor_Init();
 #elif BACKUP_TEST_MODE
   Obs_Sensor_Init();
   MOTOR_Init();
@@ -182,6 +185,22 @@ int main(void)
   OLED_ShowString(2, 1, line2);
   OLED_ShowString(3, 1, line3);
   OLED_ShowString(4, 1, line4);
+    HAL_Delay(100);
+#elif SHADE_UART_TEST_MODE
+    site_detect_shade();
+
+    uint32_t adc0 = shade[0];
+    uint32_t adc1 = shade[1];
+    uint32_t mv0 = (uint32_t)(voltage[0] * 1000.0f + 0.5f);
+    uint32_t mv1 = (uint32_t)(voltage[1] * 1000.0f + 0.5f);
+    char uart_buf[64] = {0};
+    int len = snprintf(uart_buf, sizeof(uart_buf),
+                       "A0:%lu,A1:%lu,V0:%lumV,V1:%lumV\r\n",
+                       adc0, adc1, mv0, mv1);
+    if (len > 0)
+    {
+      HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf, (uint16_t)len, 100);
+    }
     HAL_Delay(100);
 #elif BACKUP_TEST_MODE
     if (!Backup_IsDone())

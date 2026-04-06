@@ -1,6 +1,10 @@
 #include "motor.h"
 #include "tim.h"
 
+/* 记录左右电机组最后的速度方向, 供制动用 */
+static int16_t motor_last_left  = 0;
+static int16_t motor_last_right = 0;
+
 void MOTOR_Init(void)
 {
      // 启动TIM4 PWM - 电机1和电机2
@@ -23,6 +27,7 @@ void MOTOR_SetSpeed(MOTOR_ID motor_id, int16_t speed)
     {
         case MOTOR_1:
         case MOTOR_2:
+            motor_last_left = speed;
             if (speed >= 0)
             {
                 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pulse); // Motor1_A
@@ -37,6 +42,7 @@ void MOTOR_SetSpeed(MOTOR_ID motor_id, int16_t speed)
 
         case MOTOR_3:
         case MOTOR_4:
+            motor_last_right = speed;
             if (speed >= 0)
             {
                 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, pulse); // Motor4_A
@@ -57,6 +63,20 @@ void MOTOR_StopAll(void)
     MOTOR_SetSpeed(MOTOR_2, 0);
     MOTOR_SetSpeed(MOTOR_3, 0);
     MOTOR_SetSpeed(MOTOR_4, 0);
+}
+
+void MOTOR_BrakeAll(void)
+{
+    // 反向短脉冲制动: 施加与当前方向相反的力, 快速停车
+    int16_t brake_l = (motor_last_left > 0) ? -BRAKE_PULSE_SPEED :
+                      (motor_last_left < 0) ?  BRAKE_PULSE_SPEED : 0;
+    int16_t brake_r = (motor_last_right > 0) ? -BRAKE_PULSE_SPEED :
+                      (motor_last_right < 0) ?  BRAKE_PULSE_SPEED : 0;
+
+    MOTOR_SetSpeed(MOTOR_1, brake_l);
+    MOTOR_SetSpeed(MOTOR_3, brake_r);
+    HAL_Delay(BRAKE_PULSE_MS);
+    MOTOR_StopAll();
 }
 
 void drive_For_L(void)//前进(低中高)

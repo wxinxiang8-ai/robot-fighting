@@ -30,6 +30,8 @@
 #define FIGHT_ENGAGE_LOST 500 //交战丢失时间
 #define FIGHT_RETREAT_TIME 400 //撤退时间
 #define FIGHT_TURN_TIME   550 //掉头时间(180°)
+#define FIGHT_FB_FORWARD_TIME 400 //F/B回避后前进时间
+#define FIGHT_FB_REAR_IGNORE_TIME 800 //F/B掉头后后方光电忽略时间
 #define FIGHT_VISION_CONFIRM_COUNT 2 //视觉类型消抖次数
 #define FIGHT_SHADE_CONFIRM_COUNT 3 //灰度掉台确认次数
 
@@ -49,8 +51,9 @@ typedef enum{
 /*======进攻状态======*/
 typedef enum{
     FIGHT_ENGAGE, //交战
-    FIGHT_RETREAT, //后退脱离
+    FIGHT_RETREAT, //边缘后退脱离
     FIGHT_TURN,   //掉头180°
+    FIGHT_FORWARD, //F/B回避后短前进
     FIGHT_DONE, //交还控制权回漫游
 }FightState;
 

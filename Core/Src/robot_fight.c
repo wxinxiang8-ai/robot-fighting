@@ -18,6 +18,15 @@ static uint8_t Fight_VisionTypeCount = 0;
 static uint8_t Fight_EdgeCount = 0;
 static uint8_t Fight_ShadeCount = 0;
 static bool Fight_DownFlag = false;
+static uint32_t Fight_IgnoreRearUntil = 0;
+
+typedef enum {
+    FIGHT_ACTION_NONE = 0,
+    FIGHT_ACTION_EDGE,
+    FIGHT_ACTION_FB
+} FightActionReason;
+
+static FightActionReason Fight_ActionReason = FIGHT_ACTION_NONE;
 
 /**
  * @description: 视觉精准追踪白色物块
@@ -47,15 +56,23 @@ static void Fight_VisionChase(void)
  */
 EnemyDir Fight_GetEnemyDir(void)
 {
+    uint32_t now = HAL_GetTick();
+    uint8_t ignore_rear = (Fight_IgnoreRearUntil != 0 && now < Fight_IgnoreRearUntil);
+
     /*读取八路光电传感器*/
     uint8_t nw    = (HAL_GPIO_ReadPin(FIGHT_IR_NW_PORT,    FIGHT_IR_NW_PIN)    == FIGHT_IR_TRIGGERED);
     uint8_t ne    = (HAL_GPIO_ReadPin(FIGHT_IR_NE_PORT,    FIGHT_IR_NE_PIN)    == FIGHT_IR_TRIGGERED);
-    uint8_t l     = 0;
-    uint8_t r     = (HAL_GPIO_ReadPin(FIGHT_IR_R_PORT,     FIGHT_IR_R_PIN)     != FIGHT_IR_TRIGGERED);;
-    uint8_t sw    = 0;
+    uint8_t l     = (HAL_GPIO_ReadPin(FIGHT_IR_L_PORT,     FIGHT_IR_L_PIN)     != FIGHT_IR_TRIGGERED);
+    uint8_t r     = (HAL_GPIO_ReadPin(FIGHT_IR_R_PORT,     FIGHT_IR_R_PIN)     != FIGHT_IR_TRIGGERED);
+    uint8_t sw    = (HAL_GPIO_ReadPin(FIGHT_IR_SW_PORT,    FIGHT_IR_SW_PIN)    == FIGHT_IR_TRIGGERED);
     uint8_t se    = (HAL_GPIO_ReadPin(FIGHT_IR_SE_PORT,    FIGHT_IR_SE_PIN)    == FIGHT_IR_TRIGGERED);
     uint8_t front = (HAL_GPIO_ReadPin(FIGHT_IR_FRONT_PORT, FIGHT_IR_FRONT_PIN) == FIGHT_IR_TRIGGERED);
     uint8_t back  = (HAL_GPIO_ReadPin(FIGHT_IR_BACK_PORT,  FIGHT_IR_BACK_PIN)  == FIGHT_IR_TRIGGERED);
+
+    if(ignore_rear)
+    {
+        back = 0;
+    }
 
     /*判断敌人方向*/
     if(front)return DIR_FRONT;
@@ -89,7 +106,7 @@ static bool detect_shade(void)
 {
     site_detect_shade();
 
-    if(voltage[0] > 2.9f && voltage[1] > 2.9f)
+    if(voltage[1] > 2.9f)
     {
         if(Fight_ShadeCount < FIGHT_SHADE_CONFIRM_COUNT)
         {
@@ -148,6 +165,8 @@ void Fight_Init(void)
     Fight_EdgeCount = 0;
     Fight_ShadeCount = 0;
     Fight_DownFlag = false;
+    Fight_IgnoreRearUntil = 0;
+    Fight_ActionReason = FIGHT_ACTION_NONE;
 }
 
 void Fight_Update(void)
@@ -167,18 +186,24 @@ void Fight_Update(void)
     if(detect_shade())
     {
         Fight_DownFlag = true;
-        MOTOR_StopAll();
+        MOTOR_BrakeAll();
         return;
     }
 
-    /*======边缘安全：连续确认后后退再回漫游======*/
+    /*======边缘安全：非RETREAT状态下停止并打断当前动作======*/
     if(Fight_EdgeDetected())
     {
+        MOTOR_StopAll();
+        Fight_ShadeCount = 0;
         Fight_EdgeCount++;
-        if(Fight_EdgeCount >= 3 && Fight_State != FIGHT_RETREAT)
+        if(Fight_State != FIGHT_RETREAT)
         {
-            Fight_State = FIGHT_RETREAT;
-            Fight_StartTime = now;
+            if(Fight_EdgeCount >= 2)
+            {
+                Fight_State = FIGHT_RETREAT;
+                Fight_ActionReason = FIGHT_ACTION_EDGE;
+                Fight_StartTime = now;
+            }
             return;
         }
     }
@@ -204,7 +229,9 @@ void Fight_Update(void)
 
                 /*视觉类型消抖后再判断*/
                 if (vision_type == 'F' || vision_type == 'B') {
-                    Fight_State     = FIGHT_RETREAT;
+                    MOTOR_BrakeAll();
+                    Fight_ActionReason = FIGHT_ACTION_FB;
+                    Fight_State = FIGHT_TURN;
                     Fight_StartTime = now;
                     break;
                 }
@@ -273,6 +300,7 @@ void Fight_Update(void)
             drive_Back_M();
             if(elapsed >= FIGHT_RETREAT_TIME)
             {
+                Fight_ActionReason = FIGHT_ACTION_EDGE;
                 Fight_State = FIGHT_TURN;
                 Fight_StartTime = now;
             }
@@ -283,9 +311,32 @@ void Fight_Update(void)
             drive_Left_S();
             if(elapsed >= FIGHT_TURN_TIME)
             {
+                if(Fight_ActionReason == FIGHT_ACTION_FB)
+                {
+                    Fight_IgnoreRearUntil = now + FIGHT_FB_REAR_IGNORE_TIME;
+                    Fight_State = FIGHT_FORWARD;
+                    Fight_StartTime = now;
+                }
+                else
+                {
+                    MOTOR_StopAll();
+                    Fight_State = FIGHT_DONE;
+                    Fight_DoneFlag = true;
+                    Fight_ActionReason = FIGHT_ACTION_NONE;
+                }
+            }
+            break;
+
+        /*======F/B回避后短前进======*/
+        case FIGHT_FORWARD:
+            drive_For_M();
+            if(elapsed >= FIGHT_FB_FORWARD_TIME)
+            {
                 MOTOR_StopAll();
+                Fight_IgnoreRearUntil = 0;
                 Fight_State = FIGHT_DONE;
                 Fight_DoneFlag = true;
+                Fight_ActionReason = FIGHT_ACTION_NONE;
             }
             break;
 

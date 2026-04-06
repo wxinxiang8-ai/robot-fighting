@@ -6,8 +6,8 @@
 
 /*======非接触式启动======*/
 /*引脚定义*/
-#define STARTUP_LEFT_PIN IR_10_Pin
-#define STARTUP_LEFT_PORT IR_10_GPIO_Port
+#define STARTUP_LEFT_PIN IR_9_Pin
+#define STARTUP_LEFT_PORT IR_9_GPIO_Port
 #define STARTUP_RIGHT_PIN IR_7_Pin
 #define STARTUP_RIGHT_PORT IR_7_GPIO_Port
 
@@ -37,7 +37,7 @@ typedef enum{
 /*======时间参数======*/
 #define GOUP_RUSH_TIME 1000
 #define GOUP_RUSH_STAGE1_TIME 200
-#define GOUP_RUSH_STAGE2_TIME 500
+#define GOUP_RUSH_STAGE2_TIME 300
 #define GOUP_TURN_TIME 500
 
 /*======速度参数======*/

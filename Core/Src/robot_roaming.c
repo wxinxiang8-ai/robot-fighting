@@ -49,7 +49,7 @@ static int detect_shade(void)
 {
     site_detect_shade();//read shade sensor data
 
-    if(voltage[0] > 2.9f && voltage[1] > 2.9f)
+    if(voltage[1] > 2.9f)
     {
         if(Roaming_ShadeCount < ROAMING_SHADE_CONFIRM_COUNT)
         {
@@ -90,16 +90,16 @@ void Roaming_Update(void)
 {
     uint32_t current_time = HAL_GetTick();
     uint32_t elapsed_time = current_time - Roaming_StartTime;
-    
-    // 检测到掉台信号时，立即停机
-    if(detect_shade())
+
+    // 非前进态下保持原有灰度掉台保护
+    if(Roaming_Stage != ROAMING_FORWARD && detect_shade())
     {
         Roaming_Stage = ROAMING_DONE;
         Roaming_Done = true;
-        MOTOR_StopAll();
+        MOTOR_BrakeAll();
         return;
     }
-    
+
     RoamingBackReason current_reason = BACK_REASON_NONE;
 
     switch(Roaming_Stage)
@@ -108,25 +108,20 @@ void Roaming_Update(void)
             // 前进状态
             drive_For_Roaming();
 
-            // 读取障碍物传感器
+            // 先读边缘传感器，优先处理悬崖
             Obs_Sensor_ReadAll();
-
-             // 根据传感器状态决定是否后退
 
             current_reason = BACK_REASON_NONE;
             if(Obs_Data.IR1 == SET && Obs_Data.IR2 == SET)
             {
-                // 两侧都检测到悬崖，后退
                 current_reason = BACK_REASON_BOTH;
             }
             else if(Obs_Data.IR1 == SET && Obs_Data.IR2 == RESET)
             {
-                // 左侧检测到悬崖，后退准备右转
                 current_reason = BACK_REASON_RIGHT;
             }
             else if(Obs_Data.IR1 == RESET && Obs_Data.IR2 == SET)
             {
-                // 右侧检测到悬崖，后退准备左转
                 current_reason = BACK_REASON_LEFT;
             }
 
@@ -134,21 +129,35 @@ void Roaming_Update(void)
             {
                 Roaming_PendingBackReason = BACK_REASON_NONE;
                 Roaming_BackDebounceStart = 0;
+
+                // 无边缘预警时，再做灰度掉台判断
+                if(detect_shade())
+                {
+                    Roaming_Stage = ROAMING_DONE;
+                    Roaming_Done = true;
+                    MOTOR_BrakeAll();
+                    break;
+                }
             }
-            else if(current_reason != Roaming_PendingBackReason)
+            else
             {
-                Roaming_PendingBackReason = current_reason;
-                Roaming_BackDebounceStart = current_time;
+                // 边缘预警期间清掉灰度累计，避免灰度抢先进入掉台
+                Roaming_ShadeCount = 0;
+                if(current_reason != Roaming_PendingBackReason)
+                {
+                    Roaming_PendingBackReason = current_reason;
+                    Roaming_BackDebounceStart = current_time;
+                }
+                else if((current_time - Roaming_BackDebounceStart) >= ROAMING_EDGE_DEBOUNCE_MS)
+                {
+                    MOTOR_StopAll();
+                    Roaming_BackReason = current_reason;
+                    Roaming_Stage = ROAMING_BACK;
+                    Roaming_StartTime = current_time;
+                    Roaming_PendingBackReason = BACK_REASON_NONE;
+                    Roaming_BackDebounceStart = 0;
+                }
             }
-            else if((current_time - Roaming_BackDebounceStart) >= ROAMING_EDGE_DEBOUNCE_MS)
-            {
-                Roaming_BackReason = current_reason;
-                Roaming_Stage = ROAMING_BACK;
-                Roaming_StartTime = current_time;
-                Roaming_PendingBackReason = BACK_REASON_NONE;
-                Roaming_BackDebounceStart = 0;
-            }
-            // 否则继续前进
             break;
             
         case ROAMING_BACK:
