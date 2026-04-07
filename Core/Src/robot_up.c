@@ -100,7 +100,7 @@ void GoUp_Update()
     switch(GoUp_Stage)
     {
         case GOUP_RUSH:
-            /*梯度加速倒退冲台*/
+            /*梯形加速倒退冲台*/
             if(elapsed_time < GOUP_RUSH_STAGE1_TIME)
             {
                 drive_user_defined(-GOUP_RUSH_SPEED_STAGE1, -GOUP_RUSH_SPEED_STAGE1);
@@ -113,6 +113,7 @@ void GoUp_Update()
             {
                 drive_user_defined(-GOUP_RUSH_SPEED_STAGE3, -GOUP_RUSH_SPEED_STAGE3);
             }
+            // drive_user_defined(-GOUP_RUSH_SPEED_STAGE3, -GOUP_RUSH_SPEED_STAGE3);
 
             if(elapsed_time >= GOUP_RUSH_TIME)
             {

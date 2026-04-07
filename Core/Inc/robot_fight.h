@@ -28,12 +28,20 @@
 /*======时间参数(ms)======*/
 #define FIGHT_ENGAGE_TIMEOUT 3000 //交战时间
 #define FIGHT_ENGAGE_LOST 500 //交战丢失时间
+#define FIGHT_EDGE_STOP_TIME 15 //边缘确认后停顿时间
 #define FIGHT_RETREAT_TIME 400 //撤退时间
 #define FIGHT_TURN_TIME   550 //掉头时间(180°)
-#define FIGHT_FB_FORWARD_TIME 400 //F/B回避后前进时间
-#define FIGHT_FB_REAR_IGNORE_TIME 800 //F/B掉头后后方光电忽略时间
+#define FIGHT_FB_FORWARD_TIME 1200 //F/B回避后前进时间
+#define FIGHT_TRACK_FRONT_INNER_SPEED 40 //前侧方追踪内侧轮速度
+#define FIGHT_TRACK_FRONT_OUTER_SPEED 600 //前侧方追踪外侧轮速度
+#define FIGHT_TRACK_SIDE_ARC_INNER_SPEED 80 //左右追踪弧线内侧轮速度
+#define FIGHT_TRACK_SIDE_ARC_OUTER_SPEED 700 //左右追踪弧线外侧轮速度
+#define FIGHT_TRACK_BACK_ARC_INNER_SPEED 0 //后侧追踪弧线内侧轮速度
+#define FIGHT_TRACK_BACK_ARC_OUTER_SPEED 800 //后侧追踪弧线外侧轮速度
+#define FIGHT_TRACK_ARC_TIME 500 //弧线追踪固定时间
+#define FIGHT_TRACK_ATTACK_SPEED 500 //补角旋转与冲刺共用速度
 #define FIGHT_VISION_CONFIRM_COUNT 2 //视觉类型消抖次数
-#define FIGHT_SHADE_CONFIRM_COUNT 3 //灰度掉台确认次数
+#define FIGHT_SHADE_CONFIRM_COUNT 3 //V1灰度掉台确认次数
 
 /*======敌人（能量块）方向======*/
 typedef enum{
@@ -51,9 +59,13 @@ typedef enum{
 /*======进攻状态======*/
 typedef enum{
     FIGHT_ENGAGE, //交战
+    FIGHT_EDGE_STOP, //边缘确认后短暂停顿
     FIGHT_RETREAT, //边缘后退脱离
-    FIGHT_TURN,   //掉头180°
+    FIGHT_TURN,   //边缘恢复掉头180°
+    FIGHT_FB_TURN, //F/B回避掉头180°
     FIGHT_FORWARD, //F/B回避后短前进
+    FIGHT_TRACK_ARC, //侧后向追踪弧线切入
+    FIGHT_TRACK_SPIN, //侧后向追踪原地补角
     FIGHT_DONE, //交还控制权回漫游
 }FightState;
 

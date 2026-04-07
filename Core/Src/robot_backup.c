@@ -12,7 +12,6 @@
 #include "obstacle.h"
 #include "shade.h"
 
-extern float voltage[2];
 
 typedef enum {
     BACKUP_SPIN = 0,
@@ -44,7 +43,7 @@ static void Backup_SwitchStage(BackupStage_t next_stage, uint32_t current_time)
 
 static int Backup_IsOnStage(void)
 {
-    return (voltage[1] < 2.9f);
+    return (voltage_v1 < 2.9f);
 }
 
 static int Backup_FrontAlignReady(void)

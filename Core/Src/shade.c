@@ -13,18 +13,15 @@
 // MX_ADC2_Init();
 // MX_DMA_Init(); // Do not call init functions at global scope. They are called in main.c
 
-uint16_t shade[2];//adc value
-float voltage[2];//voltage value
+uint16_t shade_v1;//adc value
+float voltage_v1;//voltage value
 
 void Shade_Sensor_Init(void)
 {
-    HAL_ADC_Start_DMA(&hadc2,(uint32_t*)shade,2);//start adc2 dma
+    HAL_ADC_Start_DMA(&hadc2,(uint32_t*)&shade_v1,1);//start adc2 dma
 }
 
 void site_detect_shade()
 {
-    for(int i=0;i<2;i++)
-    {
-        voltage[i]=(float)(shade[i]*3.3f)/4095.0f;//convert adc value to voltage value
-    }
+    voltage_v1 = (float)(shade_v1 * 3.3f) / 4095.0f;//convert adc value to voltage value
 }

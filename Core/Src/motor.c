@@ -183,22 +183,6 @@ void drive_Right_S(void)
     MOTOR_SetSpeed(MOTOR_4, -SPEED_TURN_S);
 }
 
-void drive_Left_Roaming(void)//漫游左右转
-{
-    MOTOR_SetSpeed(MOTOR_1, -SPEED_TURN_R);
-    MOTOR_SetSpeed(MOTOR_2, -SPEED_TURN_R);
-    MOTOR_SetSpeed(MOTOR_3, SPEED_TURN_R);
-    MOTOR_SetSpeed(MOTOR_4, SPEED_TURN_R);
-}
-
-void drive_Right_Roaming(void)
-{
-    MOTOR_SetSpeed(MOTOR_1, SPEED_TURN_R);
-    MOTOR_SetSpeed(MOTOR_2, SPEED_TURN_R);
-    MOTOR_SetSpeed(MOTOR_3, -SPEED_TURN_R);
-    MOTOR_SetSpeed(MOTOR_4, -SPEED_TURN_R);
-}
-
 void drive_Retreat_L(void)//后退左转
 {
     MOTOR_SetSpeed(MOTOR_1, -SPEED_TURN_S);
@@ -221,4 +205,46 @@ void drive_user_defined(int16_t left_speed, int16_t right_speed)//自定义速�
     MOTOR_SetSpeed(MOTOR_2, left_speed);
     MOTOR_SetSpeed(MOTOR_3, right_speed);
     MOTOR_SetSpeed(MOTOR_4, right_speed);
+}
+
+/*======斜坡平滑控制======*/
+static int16_t ramp_left_cur = 0, ramp_left_tgt = 0;
+static int16_t ramp_right_cur = 0, ramp_right_tgt = 0;
+
+static int16_t ramp_toward(int16_t cur, int16_t tgt)
+{
+    if (cur < tgt) {
+        cur += RAMP_STEP;
+        if (cur > tgt) cur = tgt;
+    } else if (cur > tgt) {
+        cur -= RAMP_STEP;
+        if (cur < tgt) cur = tgt;
+    }
+    return cur;
+}
+
+void Motor_Ramp_SetTarget(int16_t left, int16_t right)
+{
+    ramp_left_tgt = left;
+    ramp_right_tgt = right;
+}
+
+void Motor_Ramp_Update(void)
+{
+    ramp_left_cur = ramp_toward(ramp_left_cur, ramp_left_tgt);
+    ramp_right_cur = ramp_toward(ramp_right_cur, ramp_right_tgt);
+    drive_user_defined(ramp_left_cur, ramp_right_cur);
+}
+
+void Motor_Ramp_ForceStop(void)
+{
+    ramp_left_cur = ramp_left_tgt = 0;
+    ramp_right_cur = ramp_right_tgt = 0;
+    MOTOR_StopAll();
+}
+
+void Motor_Ramp_SyncFromCurrent(void)
+{
+    ramp_left_cur = ramp_left_tgt = motor_last_left;
+    ramp_right_cur = ramp_right_tgt = motor_last_right;
 }

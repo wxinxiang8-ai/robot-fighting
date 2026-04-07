@@ -91,6 +91,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+  uint32_t control_last_tick = 0;
 
   /* USER CODE END 1 */
 
@@ -131,28 +132,27 @@ int main(void)
   OLED_Clear();
   Shade_Sensor_Init();
   OLED_ShowString(1, 1, "Gray Sensor Test");
-  OLED_ShowString(2, 1, "A0:---- A1:----");
-  OLED_ShowString(3, 1, "V0: -.---V");
-  OLED_ShowString(4, 1, "V1: -.---V");
+  OLED_ShowString(2, 1, "A1:----");
+  OLED_ShowString(3, 1, "V1: -.---V");
+  OLED_ShowString(4, 1, "                ");
 #elif SHADE_UART_TEST_MODE
   Shade_Sensor_Init();
 #elif BACKUP_TEST_MODE
-  Obs_Sensor_Init();
   MOTOR_Init();
   Backup_Init();
   MOTOR_StopAll();
 #elif IR_OLED_TEST_MODE
   OLED_Init();
   OLED_Clear();
-  Obs_Sensor_Init();
   OLED_ShowString(1, 1, "IR1-IR10 Level");
 #elif VISION_OLED_TEST_MODE
   OLED_Init();
   OLED_Clear();
+  OLED_ShowString(1, 1, "Wait Team...");
+  Startup_WaitForTrigger();
   Vision_Init();
-  OLED_ShowString(1, 1, "Vision Test");
+  OLED_ShowString(1, 1, (Current_Team == TEAM_YELLOW) ? "Vision Y" : "Vision B");
 #else
-  Obs_Sensor_Init();
   MOTOR_Init();
   Backup_Init();
   MOTOR_StopAll();
@@ -170,33 +170,26 @@ int main(void)
 #if SHADE_OLED_TEST_MODE
     site_detect_shade();
 
-    uint32_t adc0 = shade[0];
-    uint32_t adc1 = shade[1];
-  uint32_t mv0 = (uint32_t)(voltage[0] * 1000.0f + 0.5f);
-  uint32_t mv1 = (uint32_t)(voltage[1] * 1000.0f + 0.5f);
-  char line2[17] = {0};
-  char line3[17] = {0};
-  char line4[17] = {0};
+    uint32_t adc1 = shade_v1;
+    uint32_t mv1 = (uint32_t)(voltage_v1 * 1000.0f + 0.5f);
+    char line2[17] = {0};
+    char line3[17] = {0};
 
-  snprintf(line2, sizeof(line2), "A0:%4lu A1:%4lu", adc0, adc1);
-  snprintf(line3, sizeof(line3), "V0:%1lu.%03luV", mv0 / 1000U, mv0 % 1000U);
-  snprintf(line4, sizeof(line4), "V1:%1lu.%03luV", mv1 / 1000U, mv1 % 1000U);
+    snprintf(line2, sizeof(line2), "A1:%4lu", adc1);
+    snprintf(line3, sizeof(line3), "V1:%1lu.%03luV", mv1 / 1000U, mv1 % 1000U);
 
-  OLED_ShowString(2, 1, line2);
-  OLED_ShowString(3, 1, line3);
-  OLED_ShowString(4, 1, line4);
+    OLED_ShowString(2, 1, line2);
+    OLED_ShowString(3, 1, line3);
     HAL_Delay(100);
 #elif SHADE_UART_TEST_MODE
     site_detect_shade();
 
-    uint32_t adc0 = shade[0];
-    uint32_t adc1 = shade[1];
-    uint32_t mv0 = (uint32_t)(voltage[0] * 1000.0f + 0.5f);
-    uint32_t mv1 = (uint32_t)(voltage[1] * 1000.0f + 0.5f);
+    uint32_t adc1 = shade_v1;
+    uint32_t mv1 = (uint32_t)(voltage_v1 * 1000.0f + 0.5f);
     char uart_buf[64] = {0};
     int len = snprintf(uart_buf, sizeof(uart_buf),
-                       "A0:%lu,A1:%lu,V0:%lumV,V1:%lumV\r\n",
-                       adc0, adc1, mv0, mv1);
+                       "A1:%lu,V1:%lumV\r\n",
+                       adc1, mv1);
     if (len > 0)
     {
       HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf, (uint16_t)len, 100);
@@ -206,14 +199,12 @@ int main(void)
     if (!Backup_IsDone())
     {
       /* default off-stage */
-      shade[0] = BACKUP_TEST_OFF_STAGE_ADC;
-      shade[1] = BACKUP_TEST_OFF_STAGE_ADC;
+      shade_v1 = BACKUP_TEST_OFF_STAGE_ADC;
     }
     else
     {
       /* after completion, default on-stage (1) */
-      shade[0] = BACKUP_TEST_ON_STAGE_ADC;
-      shade[1] = BACKUP_TEST_ON_STAGE_ADC;
+      shade_v1 = BACKUP_TEST_ON_STAGE_ADC;
     }
 
     Backup_Update();
@@ -273,8 +264,12 @@ int main(void)
       HAL_Delay(100);
     }
 #else
-    Robot_Control_Update();
-    HAL_Delay(10);
+    uint32_t now = HAL_GetTick();
+    if ((now - control_last_tick) >= 5U)
+    {
+      control_last_tick = now;
+      Robot_Control_Update();
+    }
 #endif
     /* USER CODE END WHILE */
 

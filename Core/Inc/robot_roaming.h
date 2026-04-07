@@ -15,10 +15,11 @@
 /*======漫游状态======*/
 typedef enum{
     ROAMING_FORWARD,      // 前进状态
+    ROAMING_EDGE_STOP,    // 边缘确认后短暂停顿
     ROAMING_BACK,         // 后退状态
     ROAMING_TURN_LEFT,    // 左转状态
     ROAMING_TURN_RIGHT,   // 右转状态
-    ROAMING_TURN_BOTH,    // 后退并转向状态 
+    ROAMING_TURN_BOTH,    // 后退并转向状态
     ROAMING_DONE          // 完成状态（掉落擂台）
 }RoamingState;
 
@@ -35,9 +36,9 @@ typedef enum {
 #define ROAMING_BACKAND_TURN_TIME  600   // 后退并转向时间
 #define ROAMING_TURN_LEFT_TIME  380   // 左转时间
 #define ROAMING_TURN_RIGHT_TIME  460   // 右转时间
-#define ROAMING_FORWARD_TIME 360 // 前进时间
-#define ROAMING_EDGE_DEBOUNCE_MS 20 // 边缘光电消抖时间
-#define ROAMING_SHADE_CONFIRM_COUNT 3 // 灰度掉台确认次数
+#define ROAMING_EDGE_CONFIRM_COUNT 2 // 边缘光电消抖次数
+#define ROAMING_EDGE_STOP_TIME 15 // 边缘确认后停顿时间
+#define ROAMING_SHADE_CONFIRM_COUNT 3 // V1灰度掉台确认次数
 
 void Roaming_Init(void);
 void Roaming_Update(void);
