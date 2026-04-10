@@ -6,6 +6,7 @@
 static GoUpState GoUp_Stage = GOUP_RUSH;
 static uint32_t GoUp_StartTime = 0;
 static bool GoUp_Done = false;
+static uint8_t GoUp_ShadeCount = 0;
 TeamColor Current_Team = TEAM_NONE;
 
 /**
@@ -82,9 +83,11 @@ void Startup_Notify(TeamColor team)
  */
 void GoUp_Init(void)
 {
+    Shade_Sensor_Init();
     GoUp_Stage = GOUP_RUSH;
     GoUp_StartTime = HAL_GetTick();
     GoUp_Done = false;
+    GoUp_ShadeCount = 0;
 }
 
 /**
@@ -117,10 +120,34 @@ void GoUp_Update()
 
             if(elapsed_time >= GOUP_RUSH_TIME)
             {
+                GoUp_Stage = GOUP_CONFIRM;
+                GoUp_StartTime = current_time;
+                GoUp_ShadeCount = 0;
+            }
+            break;
+
+        case GOUP_CONFIRM:
+            MOTOR_StopAll();
+            site_detect_shade();
+            if(voltage_v0 < 2.9f && voltage_v1 < 2.9f)
+            {
+                if(GoUp_ShadeCount < GOUP_SHADE_CONFIRM_COUNT)
+                {
+                    GoUp_ShadeCount++;
+                }
+            }
+            else
+            {
+                GoUp_ShadeCount = 0;
+            }
+
+            if(GoUp_ShadeCount >= GOUP_SHADE_CONFIRM_COUNT)
+            {
                 GoUp_Stage = GOUP_TURN;
                 GoUp_StartTime = current_time;
             }
             break;
+
         case GOUP_TURN:
             /*原地掉头*/
             drive_Left_S();

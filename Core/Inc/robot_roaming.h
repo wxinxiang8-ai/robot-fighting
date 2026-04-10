@@ -36,9 +36,9 @@ typedef enum {
 #define ROAMING_BACKAND_TURN_TIME  600   // 后退并转向时间
 #define ROAMING_TURN_LEFT_TIME  380   // 左转时间
 #define ROAMING_TURN_RIGHT_TIME  460   // 右转时间
-#define ROAMING_EDGE_CONFIRM_COUNT 2 // 边缘光电消抖次数
+#define ROAMING_EDGE_CONFIRM_COUNT 1 // 边缘光电消抖次数
 #define ROAMING_EDGE_STOP_TIME 15 // 边缘确认后停顿时间
-#define ROAMING_SHADE_CONFIRM_COUNT 3 // V1灰度掉台确认次数
+#define ROAMING_SHADE_CONFIRM_COUNT 3 // V0/V1灰度掉台确认次数
 
 void Roaming_Init(void);
 void Roaming_Update(void);

@@ -12,6 +12,12 @@
 #include "motor.h"
 
 
+typedef enum {
+    ROAMING_TURN_DIR_NONE = 0,
+    ROAMING_TURN_DIR_LEFT,
+    ROAMING_TURN_DIR_RIGHT
+} RoamingTurnDir;
+
 static RoamingState Roaming_Stage = ROAMING_FORWARD;
 static uint32_t Roaming_StartTime = 0;
 static bool Roaming_Done = false;
@@ -20,9 +26,11 @@ static uint32_t Roaming_TurnDuration = ROAMING_TURN_LEFT_TIME;
 static RoamingBackReason Roaming_PendingBackReason = BACK_REASON_NONE;
 static uint8_t Roaming_EdgeCount = 0;
 static uint8_t Roaming_ShadeCount = 0;
+static RoamingTurnDir Roaming_LastTurnDir = ROAMING_TURN_DIR_NONE;
+static RoamingTurnDir Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
 
 /**
- * @description: 检测是否掉落擂台（当前正式判定仅使用 V1）
+ * @description: 检测是否掉落擂台（V0/V1 任一超阈值判定掉台）
  * @param void
  * @return int 1=掉落擂台, 0=在擂台上
  */
@@ -30,7 +38,7 @@ static int detect_shade(void)
 {
     site_detect_shade();//read shade sensor data
 
-    if(voltage_v1 > 2.9f)
+    if(voltage_v0 > 2.8f || voltage_v1 > 2.8f)
     {
         if(Roaming_ShadeCount < ROAMING_SHADE_CONFIRM_COUNT)
         {
@@ -60,6 +68,8 @@ void Roaming_Init(void)
     Roaming_PendingBackReason = BACK_REASON_NONE;
     Roaming_EdgeCount = 0;
     Roaming_ShadeCount = 0;
+    Roaming_LastTurnDir = ROAMING_TURN_DIR_NONE;
+    Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
 }
 
 /**
@@ -115,7 +125,13 @@ void Roaming_Update(void)
                     break;
                 }
 
-                // 仅在无边缘预警时继续前进
+                // 若仍处于边缘预刹车阶段，则先不恢复前进，避免覆盖刹车输出
+                if(MOTOR_IsBraking())
+                {
+                    break;
+                }
+
+                // 仅在无边缘预警且刹车已结束时继续前进
                 drive_For_Roaming();
             }
             else
@@ -126,7 +142,7 @@ void Roaming_Update(void)
                 {
                     Roaming_PendingBackReason = current_reason;
                     Roaming_EdgeCount = 1;
-                    MOTOR_BrakeAll();
+                    MOTOR_BrakeAllRelease();
                 }
                 else
                 {
@@ -144,7 +160,7 @@ void Roaming_Update(void)
             break;
 
         case ROAMING_EDGE_STOP:
-            if(elapsed_time >= ROAMING_EDGE_STOP_TIME)
+            if(!MOTOR_IsBraking() && elapsed_time >= ROAMING_EDGE_STOP_TIME)
             {
                 Roaming_Stage = ROAMING_BACK;
                 Roaming_StartTime = current_time;
@@ -162,16 +178,27 @@ void Roaming_Update(void)
                 {
                     Roaming_Stage = ROAMING_TURN_BOTH;
                     Roaming_TurnDuration = ROAMING_BACKAND_TURN_TIME;
+                    if(Roaming_LastTurnDir == ROAMING_TURN_DIR_RIGHT)
+                    {
+                        Roaming_BothTurnDir = ROAMING_TURN_DIR_LEFT;
+                    }
+                    else
+                    {
+                        Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
+                    }
+                    Roaming_LastTurnDir = Roaming_BothTurnDir;
                 }
                 else if(Roaming_BackReason == BACK_REASON_LEFT)
                 {
                     Roaming_Stage = ROAMING_TURN_LEFT;
                     Roaming_TurnDuration = ROAMING_TURN_LEFT_TIME;
+                    Roaming_LastTurnDir = ROAMING_TURN_DIR_LEFT;
                 }
                 else if(Roaming_BackReason == BACK_REASON_RIGHT)
                 {
                     Roaming_Stage = ROAMING_TURN_RIGHT;
                     Roaming_TurnDuration = ROAMING_TURN_RIGHT_TIME;
+                    Roaming_LastTurnDir = ROAMING_TURN_DIR_RIGHT;
                 }
                 else
                 {
@@ -208,9 +235,15 @@ void Roaming_Update(void)
             break;
 
         case ROAMING_TURN_BOTH:
-            // 右转状态
-            drive_user_defined(400, -400);
-            
+            if(Roaming_BothTurnDir == ROAMING_TURN_DIR_LEFT)
+            {
+                drive_user_defined(-400, 400);
+            }
+            else
+            {
+                drive_user_defined(400, -400);
+            }
+
             if(elapsed_time >= Roaming_TurnDuration)
             {
                 // 转向完成，继续前进

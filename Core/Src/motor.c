@@ -4,6 +4,11 @@
 /* 记录左右电机组最后的速度方向, 供制动用 */
 static int16_t motor_last_left  = 0;
 static int16_t motor_last_right = 0;
+static uint8_t motor_braking = 0;
+static uint8_t motor_brake_stop_on_finish = 1;
+static uint32_t motor_brake_start = 0;
+static int16_t motor_brake_left = 0;
+static int16_t motor_brake_right = 0;
 
 void MOTOR_Init(void)
 {
@@ -59,24 +64,97 @@ void MOTOR_SetSpeed(MOTOR_ID motor_id, int16_t speed)
 
 void MOTOR_StopAll(void)
 {
+    motor_braking = 0;
     MOTOR_SetSpeed(MOTOR_1, 0);
     MOTOR_SetSpeed(MOTOR_2, 0);
     MOTOR_SetSpeed(MOTOR_3, 0);
     MOTOR_SetSpeed(MOTOR_4, 0);
 }
 
+static void motor_start_brake(uint8_t stop_on_finish)
+{
+    motor_brake_left = (motor_last_left > 0) ? -BRAKE_PULSE_SPEED :
+                       (motor_last_left < 0) ?  BRAKE_PULSE_SPEED : 0;
+    motor_brake_right = (motor_last_right > 0) ? -BRAKE_PULSE_SPEED :
+                        (motor_last_right < 0) ?  BRAKE_PULSE_SPEED : 0;
+
+    motor_braking = 1;
+    motor_brake_stop_on_finish = stop_on_finish;
+    motor_brake_start = HAL_GetTick();
+
+    MOTOR_SetSpeed(MOTOR_1, motor_brake_left);
+    MOTOR_SetSpeed(MOTOR_2, motor_brake_left);
+    MOTOR_SetSpeed(MOTOR_3, motor_brake_right);
+    MOTOR_SetSpeed(MOTOR_4, motor_brake_right);
+}
+
 void MOTOR_BrakeAll(void)
 {
-    // 反向短脉冲制动: 施加与当前方向相反的力, 快速停车
-    int16_t brake_l = (motor_last_left > 0) ? -BRAKE_PULSE_SPEED :
-                      (motor_last_left < 0) ?  BRAKE_PULSE_SPEED : 0;
-    int16_t brake_r = (motor_last_right > 0) ? -BRAKE_PULSE_SPEED :
-                      (motor_last_right < 0) ?  BRAKE_PULSE_SPEED : 0;
+    // 两级非阻塞制动：先强反向脉冲，再短拖刹，最后停机
+    motor_start_brake(1);
+}
 
-    MOTOR_SetSpeed(MOTOR_1, brake_l);
-    MOTOR_SetSpeed(MOTOR_3, brake_r);
-    HAL_Delay(BRAKE_PULSE_MS);
-    MOTOR_StopAll();
+void MOTOR_BrakeAllRelease(void)
+{
+    // 两级非阻塞制动：先强反向脉冲，再短拖刹，结束后不主动停机
+    motor_start_brake(0);
+}
+
+bool MOTOR_IsBraking(void)
+{
+    return (motor_braking != 0);
+}
+
+void MOTOR_Service(void)
+{
+    uint32_t elapsed;
+
+    if (!motor_braking)
+    {
+        return;
+    }
+
+    elapsed = HAL_GetTick() - motor_brake_start;
+
+    if (elapsed >= (BRAKE_PULSE_MS + BRAKE_HOLD_MS))
+    {
+        if (motor_brake_stop_on_finish)
+        {
+            MOTOR_StopAll();
+        }
+        else
+        {
+            motor_braking = 0;
+        }
+    }
+    else if (elapsed >= BRAKE_PULSE_MS)
+    {
+        int16_t hold_left = 0;
+        int16_t hold_right = 0;
+
+        if (motor_brake_left > 0)
+        {
+            hold_left = BRAKE_HOLD_SPEED;
+        }
+        else if (motor_brake_left < 0)
+        {
+            hold_left = -BRAKE_HOLD_SPEED;
+        }
+
+        if (motor_brake_right > 0)
+        {
+            hold_right = BRAKE_HOLD_SPEED;
+        }
+        else if (motor_brake_right < 0)
+        {
+            hold_right = -BRAKE_HOLD_SPEED;
+        }
+
+        MOTOR_SetSpeed(MOTOR_1, hold_left);
+        MOTOR_SetSpeed(MOTOR_2, hold_left);
+        MOTOR_SetSpeed(MOTOR_3, hold_right);
+        MOTOR_SetSpeed(MOTOR_4, hold_right);
+    }
 }
 
 void drive_For_L(void)//前进(低中高)

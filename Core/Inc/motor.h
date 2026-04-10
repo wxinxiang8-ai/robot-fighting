@@ -1,14 +1,17 @@
 #ifndef __MOTOR_H__
 #define __MOTOR_H__
 #include <stdint.h>
+#include <stdbool.h>
 
 // PWM配置
 #define PWM_MAX_VALUE       4199        // PWM最大值(对应定时器ARR)
 #define SPEED_MAX_INPUT     1000        // 速度输入最大值
 
 // 制动参数
-#define BRAKE_PULSE_SPEED   500         // 反向脉冲速度(50%)
-#define BRAKE_PULSE_MS      20          // 反向脉冲时间(ms)
+#define BRAKE_PULSE_SPEED   500         // 一级反向制动速度
+#define BRAKE_PULSE_MS      20          // 一级反向制动时间(ms)
+#define BRAKE_HOLD_SPEED    250         // 二级反向拖刹速度
+#define BRAKE_HOLD_MS       10          // 二级反向拖刹时间(ms)
 
 // 预定义速度等级
 #define SPEED_LOW           300         // 低速(30%)
@@ -17,7 +20,7 @@
 #define SPEED_ROAMING       400         // 漫游速度(40%)
 
 // 斜坡平滑参数
-#define RAMP_STEP           150         // 每10ms最大PWM变化量
+#define RAMP_STEP           250         // 每10ms最大PWM变化量
 
 // 转向速度
 #define SPEED_TURN_L        200         // 慢转向速度(20%)
@@ -64,7 +67,10 @@ void drive_Retreat_R(void);//后退右转
 void drive_user_defined(int16_t left_speed, int16_t right_speed);//用户自定义速度控制
 
 void MOTOR_StopAll(void);
-void MOTOR_BrakeAll(void);  // 主动电磁制动(安全场景用)
+void MOTOR_BrakeAll(void);          // 主动电磁制动(安全场景用，非阻塞，结束后停机)
+void MOTOR_BrakeAllRelease(void);   // 主动电磁制动(边缘场景用，非阻塞，结束后不主动停机)
+bool MOTOR_IsBraking(void);         // 查询当前是否仍在制动阶段
+void MOTOR_Service(void);           // 电机后台服务（处理非阻塞制动）
 
 void Motor_Ramp_SetTarget(int16_t left, int16_t right);
 void Motor_Ramp_Update(void);

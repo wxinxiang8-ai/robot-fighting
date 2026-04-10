@@ -51,7 +51,7 @@
 /* USER CODE BEGIN PD */
 #define SHADE_OLED_TEST_MODE   0
 #define SHADE_UART_TEST_MODE   0
-#define BACKUP_TEST_MODE       0
+#define BACKUP_TEST_MODE       1
 #define IR_OLED_TEST_MODE      0
 #define VISION_OLED_TEST_MODE  0
 
@@ -79,6 +79,74 @@ void SystemClock_Config(void);
 #if BACKUP_TEST_MODE
 #define BACKUP_TEST_OFF_STAGE_ADC 3800U
 #define BACKUP_TEST_ON_STAGE_ADC  1000U
+#define BACKUP_TEST_D_RETRY_MS    500U
+#define BACKUP_TEST_DEBUG_MS      1000U
+
+static uint8_t Backup_Test_VisionOnline = 0;
+static uint32_t Backup_Test_LastDCmdTick = 0;
+static uint32_t Backup_Test_LastDebugTick = 0;
+
+static void Backup_Test_ServiceVisionCmd(void)
+{
+  uint32_t now = HAL_GetTick();
+
+  if (Backup_Test_VisionOnline)
+  {
+    return;
+  }
+
+  if (vision_target.valid && !Vision_IsTimeout())
+  {
+    Backup_Test_VisionOnline = 1u;
+    return;
+  }
+
+  if ((now - Backup_Test_LastDCmdTick) >= BACKUP_TEST_D_RETRY_MS)
+  {
+    Vision_SendCmd('D');
+    Backup_Test_LastDCmdTick = now;
+  }
+}
+
+static uint8_t Backup_Test_CalcChecksum(const char *data)
+{
+  uint8_t cs = 0u;
+
+  while (*data != '\0')
+  {
+    cs ^= (uint8_t)(*data);
+    data++;
+  }
+
+  return cs;
+}
+
+static void Backup_Test_SendVisionDebug(void)
+{
+  uint32_t now = HAL_GetTick();
+
+  if ((now - Backup_Test_LastDebugTick) < BACKUP_TEST_DEBUG_MS)
+  {
+    return;
+  }
+
+  Backup_Test_LastDebugTick = now;
+
+  char body_buf[16] = {0};
+  int body_len = snprintf(body_buf, sizeof(body_buf), "%c,0,0,0,0", vision_target.type);
+  if (body_len <= 0)
+  {
+    return;
+  }
+
+  uint8_t cs = Backup_Test_CalcChecksum(body_buf);
+  char uart_buf[32] = {0};
+  int len = snprintf(uart_buf, sizeof(uart_buf), "$%s*%02X\n", body_buf, cs);
+  if (len > 0)
+  {
+    HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf, (uint16_t)len, 100);
+  }
+}
 #endif
 
 /* USER CODE END 0 */
@@ -132,19 +200,24 @@ int main(void)
   OLED_Clear();
   Shade_Sensor_Init();
   OLED_ShowString(1, 1, "Gray Sensor Test");
-  OLED_ShowString(2, 1, "A1:----");
-  OLED_ShowString(3, 1, "V1: -.---V");
-  OLED_ShowString(4, 1, "                ");
+  OLED_ShowString(2, 1, "A0:---- A1:----");
+  OLED_ShowString(3, 1, "V0: -.---V");
+  OLED_ShowString(4, 1, "V1: -.---V");
 #elif SHADE_UART_TEST_MODE
   Shade_Sensor_Init();
 #elif BACKUP_TEST_MODE
   MOTOR_Init();
   Backup_Init();
   MOTOR_StopAll();
+  Vision_Init();
+  Backup_Test_VisionOnline = 0u;
+  Backup_Test_LastDCmdTick = HAL_GetTick() - BACKUP_TEST_D_RETRY_MS;
+  Backup_Test_LastDebugTick = HAL_GetTick() - BACKUP_TEST_DEBUG_MS;
+  Vision_SendCmd('D');
+  Backup_Test_LastDCmdTick = HAL_GetTick();
+  Shade_TestInject_Enable(BACKUP_TEST_OFF_STAGE_ADC, BACKUP_TEST_OFF_STAGE_ADC);
 #elif IR_OLED_TEST_MODE
-  OLED_Init();
-  OLED_Clear();
-  OLED_ShowString(1, 1, "IR1-IR10 Level");
+  /* IR 测试改为串口输出到上位机 */
 #elif VISION_OLED_TEST_MODE
   OLED_Init();
   OLED_Clear();
@@ -167,79 +240,70 @@ int main(void)
 
   while (1)
   {
+    MOTOR_Service();
 #if SHADE_OLED_TEST_MODE
     site_detect_shade();
 
+    uint32_t adc0 = shade_v0;
     uint32_t adc1 = shade_v1;
+    uint32_t mv0 = (uint32_t)(voltage_v0 * 1000.0f + 0.5f);
     uint32_t mv1 = (uint32_t)(voltage_v1 * 1000.0f + 0.5f);
     char line2[17] = {0};
     char line3[17] = {0};
+    char line4[17] = {0};
 
-    snprintf(line2, sizeof(line2), "A1:%4lu", adc1);
-    snprintf(line3, sizeof(line3), "V1:%1lu.%03luV", mv1 / 1000U, mv1 % 1000U);
+    snprintf(line2, sizeof(line2), "A0:%4lu A1:%4lu", adc0, adc1);
+    snprintf(line3, sizeof(line3), "V0:%1lu.%03luV", mv0 / 1000U, mv0 % 1000U);
+    snprintf(line4, sizeof(line4), "V1:%1lu.%03luV", mv1 / 1000U, mv1 % 1000U);
 
     OLED_ShowString(2, 1, line2);
     OLED_ShowString(3, 1, line3);
+    OLED_ShowString(4, 1, line4);
     HAL_Delay(100);
 #elif SHADE_UART_TEST_MODE
     site_detect_shade();
 
+    uint32_t adc0 = shade_v0;
     uint32_t adc1 = shade_v1;
+    uint32_t mv0 = (uint32_t)(voltage_v0 * 1000.0f + 0.5f);
     uint32_t mv1 = (uint32_t)(voltage_v1 * 1000.0f + 0.5f);
-    char uart_buf[64] = {0};
+    char uart_buf[96] = {0};
     int len = snprintf(uart_buf, sizeof(uart_buf),
-                       "A1:%lu,V1:%lumV\r\n",
-                       adc1, mv1);
+                       "A0:%lu,V0:%lumV,A1:%lu,V1:%lumV\r\n",
+                       adc0, mv0, adc1, mv1);
     if (len > 0)
     {
       HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf, (uint16_t)len, 100);
     }
     HAL_Delay(100);
 #elif BACKUP_TEST_MODE
-    if (!Backup_IsDone())
-    {
-      /* default off-stage */
-      shade_v1 = BACKUP_TEST_OFF_STAGE_ADC;
-    }
-    else
-    {
-      /* after completion, default on-stage (1) */
-      shade_v1 = BACKUP_TEST_ON_STAGE_ADC;
-    }
-
+    /* 灰度坏了：测试时始终模拟台下，不做上台检测，成功上台后手动停机 */
+    Shade_TestInject_Enable(BACKUP_TEST_OFF_STAGE_ADC, BACKUP_TEST_OFF_STAGE_ADC);
+    Backup_Test_ServiceVisionCmd();
     Backup_Update();
-    if (Backup_IsDone())
-    {
-      MOTOR_StopAll();
-    }
+    Backup_Test_SendVisionDebug();
     HAL_Delay(10);
 #elif IR_OLED_TEST_MODE
-  char line2[17] = {0};
-  char line3[17] = {0};
-  char line4[17] = {0};
-
     Obs_Sensor_ReadAll();
 
-  snprintf(line2, sizeof(line2), "1:%d 2:%d 3:%d 4:%d",
-       Obs_Data.IR1 == GPIO_PIN_SET ? 1 : 0,
-       Obs_Data.IR2 == GPIO_PIN_SET ? 1 : 0,
-       Obs_Data.IR3 == GPIO_PIN_SET ? 1 : 0,
-       Obs_Data.IR4 == GPIO_PIN_SET ? 1 : 0);
-
-  snprintf(line3, sizeof(line3), "5:%d 6:%d 7:%d 8:%d",
-       Obs_Data.IR5 == GPIO_PIN_SET ? 1 : 0,
-       Obs_Data.IR6 == GPIO_PIN_SET ? 1 : 0,
-       Obs_Data.IR7 == GPIO_PIN_SET ? 1 : 0,
-       Obs_Data.IR8 == GPIO_PIN_SET ? 1 : 0);
-
-  snprintf(line4, sizeof(line4), "9:%d 10:%d",
-       Obs_Data.IR9 == GPIO_PIN_SET ? 1 : 0,
-       Obs_Data.IR10 == GPIO_PIN_SET ? 1 : 0);
-
-  OLED_ShowString(2, 1, line2);
-  OLED_ShowString(3, 1, line3);
-  OLED_ShowString(4, 1, line4);
-    HAL_Delay(100);
+    char uart_buf[96] = {0};
+    int len = snprintf(uart_buf, sizeof(uart_buf),
+                       "IR1:%d,IR2:%d,IR3:%d,IR4:%d,IR5:%d,IR6:%d,IR7:%d,IR8:%d,IR9:%d,IR10:%d\r\n",
+                       Obs_Data.IR1 == GPIO_PIN_SET ? 1 : 0,
+                       Obs_Data.IR2 == GPIO_PIN_SET ? 1 : 0,
+                       Obs_Data.IR3 == GPIO_PIN_SET ? 1 : 0,
+                       Obs_Data.IR4 == GPIO_PIN_SET ? 1 : 0,
+                       Obs_Data.IR5 == GPIO_PIN_SET ? 1 : 0,
+                       Obs_Data.IR6 == GPIO_PIN_SET ? 1 : 0,
+                       Obs_Data.IR7 == GPIO_PIN_SET ? 1 : 0,
+                       Obs_Data.IR8 == GPIO_PIN_SET ? 1 : 0,
+                       Obs_Data.IR9 == GPIO_PIN_SET ? 1 : 0,
+                       Obs_Data.IR10 == GPIO_PIN_SET ? 1 : 0);
+    if (len > 0)
+    {
+      HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf, (uint16_t)len, 100);
+    }
+    HAL_Delay(1000);
 #elif VISION_OLED_TEST_MODE
     {
       if (Vision_IsTimeout()) {

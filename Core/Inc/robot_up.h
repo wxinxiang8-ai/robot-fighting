@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include "main.h"
+#include "shade.h"
 
 /*======非接触式启动======*/
 /*引脚定义*/
@@ -30,20 +31,22 @@ extern TeamColor Current_Team;
 /*======上台状态======*/
 typedef enum{
     GOUP_RUSH,//梯度加速冲台
+    GOUP_CONFIRM,//冲台结束后灰度确认已上台
     GOUP_TURN,//差速掉头
     GOUP_DONE
 }GoUpState;
 
 /*======时间参数======*/
-#define GOUP_RUSH_TIME 1500
+#define GOUP_RUSH_TIME 1100
 #define GOUP_RUSH_STAGE1_TIME 200
 #define GOUP_RUSH_STAGE2_TIME 500
-#define GOUP_TURN_TIME 500
+#define GOUP_TURN_TIME 400
+#define GOUP_SHADE_CONFIRM_COUNT 2
 
 /*======速度参数======*/
-#define GOUP_RUSH_SPEED_STAGE1 600
-#define GOUP_RUSH_SPEED_STAGE2 700
-#define GOUP_RUSH_SPEED_STAGE3 800
+#define GOUP_RUSH_SPEED_STAGE1 500
+#define GOUP_RUSH_SPEED_STAGE2 600
+#define GOUP_RUSH_SPEED_STAGE3 700
 
 /*======函数声明======*/
 void GoUp_Init(void);
