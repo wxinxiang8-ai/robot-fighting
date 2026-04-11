@@ -310,7 +310,7 @@ int main(void)
 #else
     Edge_Sensor_Detect();
     uint32_t now = HAL_GetTick();
-    if ((now - control_last_tick) >= 3U)
+    if ((now - control_last_tick) >= 5U)
     {
       control_last_tick = now;
       Robot_Control_Update();

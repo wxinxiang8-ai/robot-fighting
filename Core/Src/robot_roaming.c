@@ -158,7 +158,6 @@ void Roaming_Update(void)
                         Roaming_StartTime = current_time;
                         Roaming_PendingBackReason = BACK_REASON_NONE;
                         Roaming_EdgeCount = 0;
-                        Edge_Latch_Clear();
                     }
                 }
             }

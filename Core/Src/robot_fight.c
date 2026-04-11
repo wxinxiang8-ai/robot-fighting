@@ -56,7 +56,7 @@ EnemyDir Fight_GetEnemyDir(void)
  */
 static bool Fight_EdgeDetected(void)
 {
-    return (Edge_Latched != 0u) || (Obs_Data.IR1 == SET || Obs_Data.IR2 == SET);
+    return (Obs_Data.IR1 == SET || Obs_Data.IR2 == SET);
 }
 
 /**
@@ -168,7 +168,6 @@ void Fight_Update(void)
                 Fight_State = FIGHT_EDGE_STOP;
                 Fight_StartTime = now;
                 Fight_EdgeCount = 0;
-                Edge_Latch_Clear();
                 return;
             }
         }
@@ -209,13 +208,13 @@ void Fight_Update(void)
                         Motor_Ramp_Update();
                         break;
                     case DIR_FRONT_LEFT:
-                        Motor_Ramp_SetTarget(FIGHT_TRACK_FRONT_INNER_SPEED,
-                                             FIGHT_TRACK_FRONT_OUTER_SPEED);
+                        Motor_Ramp_SetTarget(-FIGHT_TRACK_FRONT_SPIN_INNER_SPEED,
+                                             FIGHT_TRACK_FRONT_SPIN_OUTER_SPEED);
                         Motor_Ramp_Update();
                         break;
                     case DIR_FRONT_RIGHT:
-                        Motor_Ramp_SetTarget(FIGHT_TRACK_FRONT_OUTER_SPEED,
-                                             FIGHT_TRACK_FRONT_INNER_SPEED);
+                        Motor_Ramp_SetTarget(FIGHT_TRACK_FRONT_SPIN_OUTER_SPEED,
+                                             -FIGHT_TRACK_FRONT_SPIN_INNER_SPEED);
                         Motor_Ramp_Update();
                         break;
                     case DIR_LEFT:
