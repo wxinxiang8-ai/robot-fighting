@@ -31,9 +31,10 @@
 #define FIGHT_EDGE_STOP_TIME 15 //边缘确认后停顿时间
 #define FIGHT_RETREAT_TIME 400 //撤退时间
 #define FIGHT_TURN_TIME   550 //掉头时间(180°)
-#define FIGHT_FB_FORWARD_TIME 1200 //F/B回避后前进时间
-#define FIGHT_TRACK_FRONT_INNER_SPEED 40 //前侧方追踪内侧轮速度
-#define FIGHT_TRACK_FRONT_OUTER_SPEED 600 //前侧方追踪外侧轮速度
+#define FIGHT_FB_RETREAT_TIME 500 //F/B回避先后退时间
+#define FIGHT_FB_FORWARD_TIME 900 //F/B回避后前进时间
+#define FIGHT_TRACK_FRONT_INNER_SPEED 100 //前侧方追踪内侧轮速度
+#define FIGHT_TRACK_FRONT_OUTER_SPEED 500 //前侧方追踪外侧轮速度
 #define FIGHT_TRACK_PUSH_SPEED 500 //正前推进速度
 #define FIGHT_TRACK_SPIN_SPEED 650 //补角转向速度
 #define FIGHT_VISION_CONFIRM_COUNT 2 //视觉类型消抖次数
@@ -58,8 +59,9 @@ typedef enum{
     FIGHT_EDGE_STOP, //边缘确认后短暂停顿
     FIGHT_RETREAT, //边缘后退脱离
     FIGHT_TURN,   //边缘恢复掉头180°
-    FIGHT_FB_TURN, //F/B回避掉头180°
-    FIGHT_FORWARD, //F/B回避后短前进
+    FIGHT_FB_TURN, //F/B回避先后退
+    FIGHT_FORWARD, //F/B回避后180°掉头
+    FIGHT_FB_ADVANCE, //F/B回避后短前进
     FIGHT_TRACK_SPIN, //侧后向追踪原地补角
     FIGHT_DONE, //交还控制权回漫游
 }FightState;

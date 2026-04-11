@@ -51,7 +51,7 @@
 /* USER CODE BEGIN PD */
 #define SHADE_OLED_TEST_MODE   0
 #define SHADE_UART_TEST_MODE   0
-#define BACKUP_TEST_MODE       1
+#define BACKUP_TEST_MODE       0
 #define IR_OLED_TEST_MODE      0
 #define VISION_OLED_TEST_MODE  0
 
@@ -80,11 +80,13 @@ void SystemClock_Config(void);
 #define BACKUP_TEST_OFF_STAGE_ADC 3800U
 #define BACKUP_TEST_ON_STAGE_ADC  1000U
 #define BACKUP_TEST_D_RETRY_MS    500U
-#define BACKUP_TEST_DEBUG_MS      1000U
+#endif
+
+#if BACKUP_TEST_MODE
 
 static uint8_t Backup_Test_VisionOnline = 0;
 static uint32_t Backup_Test_LastDCmdTick = 0;
-static uint32_t Backup_Test_LastDebugTick = 0;
+static char Backup_Test_LastNonXType = 'X';
 
 static void Backup_Test_ServiceVisionCmd(void)
 {
@@ -108,45 +110,6 @@ static void Backup_Test_ServiceVisionCmd(void)
   }
 }
 
-static uint8_t Backup_Test_CalcChecksum(const char *data)
-{
-  uint8_t cs = 0u;
-
-  while (*data != '\0')
-  {
-    cs ^= (uint8_t)(*data);
-    data++;
-  }
-
-  return cs;
-}
-
-static void Backup_Test_SendVisionDebug(void)
-{
-  uint32_t now = HAL_GetTick();
-
-  if ((now - Backup_Test_LastDebugTick) < BACKUP_TEST_DEBUG_MS)
-  {
-    return;
-  }
-
-  Backup_Test_LastDebugTick = now;
-
-  char body_buf[16] = {0};
-  int body_len = snprintf(body_buf, sizeof(body_buf), "%c,0,0,0,0", vision_target.type);
-  if (body_len <= 0)
-  {
-    return;
-  }
-
-  uint8_t cs = Backup_Test_CalcChecksum(body_buf);
-  char uart_buf[32] = {0};
-  int len = snprintf(uart_buf, sizeof(uart_buf), "$%s*%02X\n", body_buf, cs);
-  if (len > 0)
-  {
-    HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf, (uint16_t)len, 100);
-  }
-}
 #endif
 
 /* USER CODE END 0 */
@@ -209,10 +172,20 @@ int main(void)
   MOTOR_Init();
   Backup_Init();
   MOTOR_StopAll();
+  OLED_Init();
+  OLED_Clear();
+  OLED_ShowString(1, 1, "Wait Team...");
+  Startup_WaitForTrigger();
   Vision_Init();
+  Vision_SendCmd('N');
+  OLED_Clear();
+  OLED_ShowString(1, 1, "Backup Test");
+  OLED_ShowString(2, 1, "Raw : ");
+  OLED_ShowString(3, 1, "Last: ");
+  OLED_ShowString(4, 1, "Stg : ");
   Backup_Test_VisionOnline = 0u;
+  Backup_Test_LastNonXType = 'X';
   Backup_Test_LastDCmdTick = HAL_GetTick() - BACKUP_TEST_D_RETRY_MS;
-  Backup_Test_LastDebugTick = HAL_GetTick() - BACKUP_TEST_DEBUG_MS;
   Vision_SendCmd('D');
   Backup_Test_LastDCmdTick = HAL_GetTick();
   Shade_TestInject_Enable(BACKUP_TEST_OFF_STAGE_ADC, BACKUP_TEST_OFF_STAGE_ADC);
@@ -231,6 +204,7 @@ int main(void)
   MOTOR_StopAll();
   Startup_WaitForTrigger();
   Vision_Init();
+  Vision_SendCmd('N');
   Robot_Control_Init();
 #endif
   /* USER CODE END 2 */
@@ -281,7 +255,13 @@ int main(void)
     Shade_TestInject_Enable(BACKUP_TEST_OFF_STAGE_ADC, BACKUP_TEST_OFF_STAGE_ADC);
     Backup_Test_ServiceVisionCmd();
     Backup_Update();
-    Backup_Test_SendVisionDebug();
+    if (vision_target.type != 'X')
+    {
+      Backup_Test_LastNonXType = vision_target.type;
+    }
+    OLED_ShowChar(2, 7, vision_target.type);
+    OLED_ShowChar(3, 7, Backup_Test_LastNonXType);
+    OLED_ShowNum(4, 7, Backup_DebugGetStage(), 1);
     HAL_Delay(10);
 #elif IR_OLED_TEST_MODE
     Obs_Sensor_ReadAll();
@@ -328,8 +308,9 @@ int main(void)
       HAL_Delay(100);
     }
 #else
+    Edge_Sensor_Detect();
     uint32_t now = HAL_GetTick();
-    if ((now - control_last_tick) >= 5U)
+    if ((now - control_last_tick) >= 3U)
     {
       control_last_tick = now;
       Robot_Control_Update();

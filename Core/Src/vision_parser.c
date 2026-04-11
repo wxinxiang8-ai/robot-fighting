@@ -25,9 +25,9 @@
 volatile VisionTarget_t vision_target = { .type = 'X', .valid = 0u };
 
 /* ---- 接收统计 ---- */
-static uint32_t vision_rx_total   = 0u;  /* DMA回调触发次数 */
-static uint32_t vision_rx_success = 0u;  /* 成功解析帧数 */
-static uint32_t vision_rx_cserr   = 0u;  /* 校验和错误次数 */
+static uint32_t         vision_rx_total   = 0u;  /* DMA回调触发次数 */
+static uint32_t         vision_rx_success = 0u;  /* 成功解析帧数 */
+static uint32_t         vision_rx_cserr   = 0u;  /* 校验和错误次数 */
 
 /* ---- 内部缓冲区 ---- */
 static uint8_t dma_rx_buf[DMA_RX_BUF_SIZE];
@@ -189,7 +189,7 @@ void Vision_SendColor(char color)
 
 /**
  * @brief 向视觉系统发送单字节指令
- * @param cmd 指令字符: 'D'=掉台回复模式  'S'=恢复正常检测
+ * @param cmd 指令字符: 'D'=掉台回复模式  'S'=恢复正常检测  'N'=新一轮开始/主控重启
  */
 void Vision_SendCmd(char cmd)
 {

@@ -56,8 +56,7 @@ EnemyDir Fight_GetEnemyDir(void)
  */
 static bool Fight_EdgeDetected(void)
 {
-    Edge_Sensor_Detect();
-    return (Obs_Data.IR1 == SET || Obs_Data.IR2 == SET);
+    return (Edge_Latched != 0u) || (Obs_Data.IR1 == SET || Obs_Data.IR2 == SET);
 }
 
 /**
@@ -69,7 +68,8 @@ static bool detect_shade(void)
 {
     site_detect_shade();
 
-    if(voltage_v0 > 2.8f || voltage_v1 > 2.8f)
+    if((voltage_v0 > 2.8f && voltage_v0 < 3.0f) ||
+       (voltage_v1 > 2.8f && voltage_v1 < 3.0f))
     {
         if(Fight_ShadeCount < FIGHT_SHADE_CONFIRM_COUNT)
         {
@@ -148,7 +148,6 @@ void Fight_Update(void)
     /*======掉台安全======*/
     if(detect_shade())
     {
-        Motor_Ramp_ForceStop();
         Fight_DownFlag = true;
         MOTOR_BrakeAll();
         return;
@@ -160,15 +159,16 @@ void Fight_Update(void)
     {
         if(Fight_EdgeDetected())
         {
+            uint8_t edge_confirm_needed = (Fight_State == FIGHT_ENGAGE) ? 1 : 2;
             Fight_EdgeCount++;
-            if(Fight_EdgeCount >= 2)
+            if(Fight_EdgeCount >= edge_confirm_needed)
             {
-                Motor_Ramp_ForceStop();
-                MOTOR_BrakeAllRelease();
+                MOTOR_BrakeAll();
                 Fight_ShadeCount = 0;
                 Fight_State = FIGHT_EDGE_STOP;
                 Fight_StartTime = now;
                 Fight_EdgeCount = 0;
+                Edge_Latch_Clear();
                 return;
             }
         }
@@ -195,7 +195,6 @@ void Fight_Update(void)
 
                 /*视觉类型消抖后再判断*/
                 if (vision_type == 'F' || vision_type == 'B') {
-                    Motor_Ramp_ForceStop();
                     MOTOR_BrakeAll();
                     Fight_State = FIGHT_FB_TURN;
                     Fight_StartTime = now;
@@ -272,7 +271,7 @@ void Fight_Update(void)
 
         /*======撤退状态======*/
         case FIGHT_RETREAT:
-            drive_user_defined(-600, -600);
+            drive_user_defined(-750, -750);
             if(elapsed >= FIGHT_RETREAT_TIME)
             {
                 Fight_State = FIGHT_TURN;
@@ -289,18 +288,28 @@ void Fight_Update(void)
             }
             break;
 
-        /*======F/B回避掉头状态======*/
+        /*======F/B回避先后退======*/
         case FIGHT_FB_TURN:
-            drive_Left_S();
-            if(elapsed >= FIGHT_TURN_TIME)
+            drive_user_defined(-500, -500);
+            if(elapsed >= FIGHT_FB_RETREAT_TIME)
             {
                 Fight_State = FIGHT_FORWARD;
                 Fight_StartTime = now;
             }
             break;
 
-        /*======F/B回避后短前进======*/
+        /*======F/B回避后180°掉头======*/
         case FIGHT_FORWARD:
+            drive_Left_S();
+            if(elapsed >= FIGHT_TURN_TIME)
+            {
+                Fight_State = FIGHT_FB_ADVANCE;
+                Fight_StartTime = now;
+            }
+            break;
+
+        /*======F/B回避后短前进======*/
+        case FIGHT_FB_ADVANCE:
             drive_For_M();
             if(elapsed >= FIGHT_FB_FORWARD_TIME)
             {

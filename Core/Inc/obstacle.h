@@ -22,11 +22,13 @@ typedef struct {
 
 // 声明全局变量，供其他文件访问
 extern Obs_Sensors_t Obs_Data;
+extern volatile uint8_t Edge_Latched;
 
 // 函数声明
 void Obs_Sensor_ReadAll(void);
 void Edge_Sensor_Detect(void);
 void Enmy_Sensor_Detect(void);
+void Edge_Latch_Clear(void);
 
 
 #endif // OBSTACLE_H

@@ -28,6 +28,8 @@ static uint8_t Roaming_EdgeCount = 0;
 static uint8_t Roaming_ShadeCount = 0;
 static RoamingTurnDir Roaming_LastTurnDir = ROAMING_TURN_DIR_NONE;
 static RoamingTurnDir Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
+static RoamingBackReason Roaming_LastSingleBackReason = BACK_REASON_NONE;
+static uint8_t Roaming_SameSideRepeatCount = 0;
 
 /**
  * @description: 检测是否掉落擂台（V0/V1 任一超阈值判定掉台）
@@ -38,7 +40,8 @@ static int detect_shade(void)
 {
     site_detect_shade();//read shade sensor data
 
-    if(voltage_v0 > 2.8f || voltage_v1 > 2.8f)
+    if((voltage_v0 > 2.8f && voltage_v0 < 3.0f) ||
+       (voltage_v1 > 2.8f && voltage_v1 < 3.0f))
     {
         if(Roaming_ShadeCount < ROAMING_SHADE_CONFIRM_COUNT)
         {
@@ -70,6 +73,8 @@ void Roaming_Init(void)
     Roaming_ShadeCount = 0;
     Roaming_LastTurnDir = ROAMING_TURN_DIR_NONE;
     Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
+    Roaming_LastSingleBackReason = BACK_REASON_NONE;
+    Roaming_SameSideRepeatCount = 0;
 }
 
 /**
@@ -96,8 +101,7 @@ void Roaming_Update(void)
     switch(Roaming_Stage)
     {
         case ROAMING_FORWARD:
-            // 先读边缘传感器，优先处理悬崖
-            Obs_Sensor_ReadAll();
+            // 使用主循环高频更新的边缘缓存，优先处理悬崖
             if(Obs_Data.IR1 == SET && Obs_Data.IR2 == SET)
             {
                 current_reason = BACK_REASON_BOTH;
@@ -154,6 +158,7 @@ void Roaming_Update(void)
                         Roaming_StartTime = current_time;
                         Roaming_PendingBackReason = BACK_REASON_NONE;
                         Roaming_EdgeCount = 0;
+                        Edge_Latch_Clear();
                     }
                 }
             }
@@ -186,23 +191,53 @@ void Roaming_Update(void)
                     {
                         Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
                     }
+                    Roaming_LastSingleBackReason = BACK_REASON_NONE;
+                    Roaming_SameSideRepeatCount = 0;
                     Roaming_LastTurnDir = Roaming_BothTurnDir;
                 }
                 else if(Roaming_BackReason == BACK_REASON_LEFT)
                 {
                     Roaming_Stage = ROAMING_TURN_LEFT;
                     Roaming_TurnDuration = ROAMING_TURN_LEFT_TIME;
+                    if(Roaming_LastSingleBackReason == BACK_REASON_LEFT)
+                    {
+                        if(Roaming_SameSideRepeatCount < 1)
+                        {
+                            Roaming_SameSideRepeatCount++;
+                        }
+                    }
+                    else
+                    {
+                        Roaming_SameSideRepeatCount = 0;
+                    }
+                    Roaming_TurnDuration += ((uint32_t)Roaming_SameSideRepeatCount * ROAMING_REPEAT_TURN_BONUS_TIME);
+                    Roaming_LastSingleBackReason = BACK_REASON_LEFT;
                     Roaming_LastTurnDir = ROAMING_TURN_DIR_LEFT;
                 }
                 else if(Roaming_BackReason == BACK_REASON_RIGHT)
                 {
                     Roaming_Stage = ROAMING_TURN_RIGHT;
                     Roaming_TurnDuration = ROAMING_TURN_RIGHT_TIME;
+                    if(Roaming_LastSingleBackReason == BACK_REASON_RIGHT)
+                    {
+                        if(Roaming_SameSideRepeatCount < 1)
+                        {
+                            Roaming_SameSideRepeatCount++;
+                        }
+                    }
+                    else
+                    {
+                        Roaming_SameSideRepeatCount = 0;
+                    }
+                    Roaming_TurnDuration += ((uint32_t)Roaming_SameSideRepeatCount * ROAMING_REPEAT_TURN_BONUS_TIME);
+                    Roaming_LastSingleBackReason = BACK_REASON_RIGHT;
                     Roaming_LastTurnDir = ROAMING_TURN_DIR_RIGHT;
                 }
                 else
                 {
                     Roaming_Stage = ROAMING_FORWARD;
+                    Roaming_LastSingleBackReason = BACK_REASON_NONE;
+                    Roaming_SameSideRepeatCount = 0;
                 }
                 Roaming_BackReason = BACK_REASON_NONE;
                 

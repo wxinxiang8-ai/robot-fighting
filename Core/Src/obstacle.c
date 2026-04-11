@@ -11,6 +11,7 @@
 
 // 定义全局变量实例
 Obs_Sensors_t Obs_Data = {0};
+volatile uint8_t Edge_Latched = 0;
 
 static GPIO_PinState invert_state(GPIO_PinState state)
 {
@@ -44,6 +45,15 @@ void Edge_Sensor_Detect(void)
 {
     Obs_Data.IR1 = invert_state(HAL_GPIO_ReadPin(IR_1_GPIO_Port, IR_1_Pin));
     Obs_Data.IR2 = HAL_GPIO_ReadPin(IR_2_GPIO_Port, IR_2_Pin);
+    if (Obs_Data.IR1 == SET || Obs_Data.IR2 == SET)
+    {
+        Edge_Latched = 1u;
+    }
+}
+
+void Edge_Latch_Clear(void)
+{
+    Edge_Latched = 0u;
 }
 /**
   * @brief  读取周围红外传感器状态

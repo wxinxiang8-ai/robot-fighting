@@ -37,10 +37,10 @@ typedef enum{
 }GoUpState;
 
 /*======时间参数======*/
-#define GOUP_RUSH_TIME 1100
+#define GOUP_RUSH_TIME 1300
 #define GOUP_RUSH_STAGE1_TIME 200
 #define GOUP_RUSH_STAGE2_TIME 500
-#define GOUP_TURN_TIME 400
+#define GOUP_TURN_TIME 550
 #define GOUP_SHADE_CONFIRM_COUNT 2
 
 /*======速度参数======*/

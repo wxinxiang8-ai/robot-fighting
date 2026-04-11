@@ -4,11 +4,12 @@
  *
  * 整体思路：
  * 1. SPIN 原地左转，找到允许前冲修姿的朝向；
- * 2. RUSH_FORWARD 前冲修正姿态；
- * 3. 前冲结束后，若视觉稳定识别到 'G'，则直接进入 RUSH_BACK 后退冲台；
- * 4. 若视觉未满足，则进入 ESCAPE_BACK / ESCAPE_TURN 退让并换角度后回到 RUSH_FORWARD 重试；
- * 5. RUSH_BACK 过程中用双灰度连续确认是否已回到台上；
- * 6. FINISH_TURN 上台后再做一次收尾左转，随后交回漫游模块。
+ * 2. 若 SPIN 连续超过 2s 仍未对正，则切入 SPIN_FORWARD 短前进脱困，随后回到 SPIN 继续搜索；
+ * 3. RUSH_FORWARD 前冲修正姿态；
+ * 4. 前冲结束后，若视觉识别到 'G'，则直接进入 RUSH_BACK 后退冲台；
+ * 5. 若视觉未满足，则进入 ESCAPE_BACK / ESCAPE_TURN 退让并换角度后回到 RUSH_FORWARD 重试；
+ * 6. RUSH_BACK 必须完整执行完后，再进入 POST_RUSH_CHECK 用双灰度连续确认是否已回到台上；
+ * 7. FINISH_TURN 上台后再做一次收尾左转，随后交回漫游模块。
  */
 #include "robot_backup.h"
 #include "robot_roaming.h"
@@ -21,8 +22,10 @@
 
 typedef enum {
     BACKUP_SPIN = 0,
+    BACKUP_SPIN_FORWARD,
     BACKUP_RUSH_FORWARD,
     BACKUP_RUSH_BACK,
+    BACKUP_POST_RUSH_CHECK,
     BACKUP_ESCAPE_BACK,
     BACKUP_ESCAPE_TURN,
     BACKUP_FINISH_TURN
@@ -33,11 +36,8 @@ static uint32_t Backup_StartTime = 0;             // 当前阶段开始时刻，
 static bool Backup_Done = false;                  // 本轮回台是否完成
 static uint8_t Backup_OnStageCount = 0;           // 已上台连续确认计数（灰度去抖）
 static uint8_t Backup_FrontAlignCount = 0;        // 前向对正连续确认计数（IR去抖）
-static char Backup_PrevVisionType = 'X';          // 上一帧视觉类型（用于 backup 视觉消抖）
-static char Backup_StableVisionType = 'X';        // backup 使用的稳定视觉类型
-static uint8_t Backup_VisionTypeCount = 0;        // 视觉类型连续命中计数
+static char Backup_StableVisionType = 'X';        // backup 当前视觉类型（调试回读）
 
-#define BACKUP_VISION_CONFIRM_COUNT 2        // 视觉 G 连续确认次数
 #define BACKUP_FRONT_ALIGN_CONFIRM_COUNT 3   // IR 前向对正确认次数
 #define BACKUP_FORWARD_LEFT_SPEED 200        // 前冲修姿时左轮速度
 #define BACKUP_FORWARD_RIGHT_SPEED 400       // 前冲修姿时右轮速度
@@ -102,44 +102,28 @@ static int Backup_FrontAlignReady(void)
 }
 
 /**
- * @brief 获取 backup 使用的稳定视觉类型
- * @return 连续确认后的稳定视觉类型；超时/无效时返回 'X'
+ * @brief 获取 backup 当前视觉类型
+ * @return 当前有效视觉类型；超时/无效时返回 'X'
  */
-static char Backup_GetStableVisionType(void)
+static char Backup_GetVisionType(void)
 {
     if (Vision_IsTimeout() || !vision_target.valid)
     {
-        Backup_PrevVisionType = 'X';
         Backup_StableVisionType = 'X';
-        Backup_VisionTypeCount = 0;
         return 'X';
     }
 
-    if (vision_target.type != Backup_PrevVisionType)
-    {
-        Backup_PrevVisionType = vision_target.type;
-        Backup_VisionTypeCount = 1;
-    }
-    else if (Backup_VisionTypeCount < BACKUP_VISION_CONFIRM_COUNT)
-    {
-        Backup_VisionTypeCount++;
-    }
-
-    if (Backup_VisionTypeCount >= BACKUP_VISION_CONFIRM_COUNT)
-    {
-        Backup_StableVisionType = Backup_PrevVisionType;
-    }
-
+    Backup_StableVisionType = vision_target.type;
     return Backup_StableVisionType;
 }
 
 /**
- * @brief 判断视觉是否稳定识别到可直接后退冲台的目标
- * @return 1=稳定识别到 'G'；0=视觉仍未满足
+ * @brief 判断是否满足直接后退冲台条件
+ * @return 1=视觉识别到 'G'；0=仍需继续换角度重试
  */
-static bool Backup_VisionWallReady(void)
+static bool Backup_RushBackReady(void)
 {
-    return (Backup_GetStableVisionType() == 'G');
+    return (Backup_GetVisionType() == 'G');
 }
 
 /**
@@ -147,12 +131,12 @@ static bool Backup_VisionWallReady(void)
  * @param current_time 当前时刻
  *
  * 规则：
- * - 若视觉稳定识别到 'G'，说明当前姿态允许直接后退冲台，进入 RUSH_BACK；
+ * - 若视觉识别到 'G'，说明当前姿态允许直接后退冲台，进入 RUSH_BACK；
  * - 否则先短后退脱离，再转向重试。
  */
 static void Backup_HandleForwardTimeout(uint32_t current_time)
 {
-    if(Backup_VisionWallReady())
+    if(Backup_RushBackReady())
     {
         Backup_SwitchStage(BACKUP_RUSH_BACK, current_time);
     }
@@ -164,7 +148,7 @@ static void Backup_HandleForwardTimeout(uint32_t current_time)
 }
 
 /**
- * @brief 在允许的灰度确认阶段尝试判定是否已成功上台
+ * @brief 在后冲结束后的允许阶段尝试判定是否已成功上台
  * @param current_time 当前时刻
  * @return 1=已判定上台并切入 FINISH_TURN；0=尚未上台
  */
@@ -199,9 +183,7 @@ void Backup_Init(void)
     Backup_Done = false;
     Backup_OnStageCount = 0;
     Backup_FrontAlignCount = 0;
-    Backup_PrevVisionType = 'X';
     Backup_StableVisionType = 'X';
-    Backup_VisionTypeCount = 0;
 }
 
 void Backup_Update(void)
@@ -219,16 +201,34 @@ void Backup_Update(void)
     switch (Backup_Stage)
     {
         case BACKUP_SPIN:
-            /* 原地左转搜索可前冲修姿的朝向 */
+            /* 原地左转搜索可前冲修姿的朝向；若连续转满 2s 仍未对正，则短前进一次脱困 */
             drive_Left_L();
             if(Backup_FrontAlignReady())
             {
                 Backup_SwitchStage(BACKUP_RUSH_FORWARD, current_time);
+                break;
+            }
+            if(elapsed_time >= BACKUP_SPIN_TIMEOUT_MS)
+            {
+                Backup_SwitchStage(BACKUP_SPIN_FORWARD, current_time);
+            }
+            break;
+
+        case BACKUP_SPIN_FORWARD:
+            /* SPIN 超时后短前进脱困，结束后回到 SPIN，必要时每满 2s 再触发一次 */
+            drive_For_M();
+            if(Backup_TryFinishIfOnStage(current_time))
+            {
+                return;
+            }
+            if(elapsed_time >= BACKUP_SPIN_FORWARD_TIME_MS)
+            {
+                Backup_SwitchStage(BACKUP_SPIN, current_time);
             }
             break;
 
         case BACKUP_RUSH_FORWARD:
-            /* 以前冲修正姿态，等待前冲结束后再判断是否可直接后冲上台 */
+            /* 以前冲修正姿态，等待前冲结束后再判断是否满足后冲条件 */
             drive_user_defined(BACKUP_FORWARD_LEFT_SPEED, BACKUP_FORWARD_RIGHT_SPEED);
             if(Backup_TryFinishIfOnStage(current_time))
             {
@@ -263,7 +263,7 @@ void Backup_Update(void)
             break;
 
         case BACKUP_RUSH_BACK:
-            /* 复用上台模块的三段梯度后退，逐步加大后冲力度 */
+            /* 后冲阶段必须完整执行，避免后半身刚上台就被提前判成已回台 */
             if(elapsed_time < GOUP_RUSH_STAGE1_TIME)
             {
                 drive_user_defined(-500, -500);
@@ -272,21 +272,30 @@ void Backup_Update(void)
             {
                 drive_user_defined(-600, -600);
             }
-            else
+            else if(elapsed_time < BACKUP_BACK_TIME_MS)
             {
                 drive_user_defined(-700, -700);
             }
+            else
+            {
+                MOTOR_StopAll();
+                Backup_OnStageCount = 0;
+                Backup_SwitchStage(BACKUP_POST_RUSH_CHECK, current_time);
+            }
+            break;
+
+        case BACKUP_POST_RUSH_CHECK:
+            /* 后冲结束后再静止采样灰度，确认是否整车已真正回到台上 */
+            MOTOR_StopAll();
             if(Backup_TryFinishIfOnStage(current_time))
             {
                 return;
             }
-            if(elapsed_time < BACKUP_BACK_TIME_MS)
+            if(elapsed_time >= BACKUP_POST_RUSH_CHECK_TIME_MS)
             {
-                break;
+                Backup_OnStageCount = 0;
+                Backup_SwitchStage(BACKUP_SPIN, current_time);
             }
-            /* 后冲总时长结束仍未上台，则回到 SPIN 重新开始一轮搜索 */
-            Backup_OnStageCount = 0;
-            Backup_SwitchStage(BACKUP_SPIN, current_time);
             break;
 
         case BACKUP_FINISH_TURN:
@@ -320,9 +329,4 @@ uint8_t Backup_DebugGetStage(void)
 char Backup_DebugGetStableVisionType(void)
 {
     return Backup_StableVisionType;
-}
-
-uint8_t Backup_DebugGetVisionCount(void)
-{
-    return Backup_VisionTypeCount;
 }
