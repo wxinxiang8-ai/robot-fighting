@@ -23,8 +23,8 @@ static GPIO_PinState invert_state(GPIO_PinState state)
   */
 void Obs_Sensor_ReadAll(void)
 {
-  // 读取 GPIOE 上的 IR_1 到 IR_8，以及 GPIOA 上的 IR_9、IR_10
-    
+  // 读取 GPIOE 上的 IR_1 到 IR_8，GPIOA 上的 IR_9、IR_10，以及 GPIOC 上的 IR11、IR12、IR13
+
     Obs_Data.IR1 = invert_state(HAL_GPIO_ReadPin(IR_1_GPIO_Port, IR_1_Pin));
     Obs_Data.IR2 = HAL_GPIO_ReadPin(IR_2_GPIO_Port, IR_2_Pin);
     Obs_Data.IR3 = HAL_GPIO_ReadPin(IR_3_GPIO_Port, IR_3_Pin);
@@ -35,6 +35,9 @@ void Obs_Sensor_ReadAll(void)
     Obs_Data.IR8 = HAL_GPIO_ReadPin(IR_8_GPIO_Port, IR_8_Pin);
     Obs_Data.IR9 = HAL_GPIO_ReadPin(IR_9_GPIO_Port, IR_9_Pin);
     Obs_Data.IR10 = invert_state(HAL_GPIO_ReadPin(IR_10_GPIO_Port, IR_10_Pin));
+    Obs_Data.IR11 = HAL_GPIO_ReadPin(IR11_GPIO_Port, IR11_Pin);
+    Obs_Data.IR12 = HAL_GPIO_ReadPin(IR12_GPIO_Port, IR12_Pin);
+    Obs_Data.IR13 = HAL_GPIO_ReadPin(IR13_GPIO_Port, IR13_Pin);
 }
 /**
   * @brief  读取边缘传感器状态
@@ -44,6 +47,8 @@ void Edge_Sensor_Detect(void)
 {
     Obs_Data.IR1 = invert_state(HAL_GPIO_ReadPin(IR_1_GPIO_Port, IR_1_Pin));
     Obs_Data.IR2 = HAL_GPIO_ReadPin(IR_2_GPIO_Port, IR_2_Pin);
+    Obs_Data.IR12 = HAL_GPIO_ReadPin(IR12_GPIO_Port, IR12_Pin);
+    Obs_Data.IR13 = HAL_GPIO_ReadPin(IR13_GPIO_Port, IR13_Pin);
 }
 /**
   * @brief  读取周围红外传感器状态
@@ -59,4 +64,5 @@ void Enmy_Sensor_Detect(void)
     Obs_Data.IR8 = HAL_GPIO_ReadPin(IR_8_GPIO_Port, IR_8_Pin);
     Obs_Data.IR9 = HAL_GPIO_ReadPin(IR_9_GPIO_Port, IR_9_Pin);
     Obs_Data.IR10 = invert_state(HAL_GPIO_ReadPin(IR_10_GPIO_Port, IR_10_Pin));
+    Obs_Data.IR11 = HAL_GPIO_ReadPin(IR11_GPIO_Port, IR11_Pin);
 }

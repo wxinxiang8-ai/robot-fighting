@@ -67,6 +67,10 @@ void Error_Handler(void);
 #define shade_sensor1_GPIO_Port GPIOC
 #define shade_sensor2_Pin GPIO_PIN_1
 #define shade_sensor2_GPIO_Port GPIOC
+#define IR11_Pin GPIO_PIN_2
+#define IR11_GPIO_Port GPIOC
+#define IR12_Pin GPIO_PIN_3
+#define IR12_GPIO_Port GPIOC
 #define encoder1_a_Pin GPIO_PIN_0
 #define encoder1_a_GPIO_Port GPIOA
 #define encoder1_b_Pin GPIO_PIN_1
@@ -79,6 +83,8 @@ void Error_Handler(void);
 #define encoder2_a_GPIO_Port GPIOA
 #define encoder2_b_Pin GPIO_PIN_7
 #define encoder2_b_GPIO_Port GPIOA
+#define IR13_Pin GPIO_PIN_4
+#define IR13_GPIO_Port GPIOC
 #define encoder3_a_Pin GPIO_PIN_9
 #define encoder3_a_GPIO_Port GPIOE
 #define encoder3_b_Pin GPIO_PIN_11
