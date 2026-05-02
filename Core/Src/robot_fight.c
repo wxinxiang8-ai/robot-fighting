@@ -28,17 +28,20 @@ static EnemyDir Fight_TrackDir = DIR_NONE;           // 侧后追踪当前方向
 EnemyDir Fight_GetEnemyDir(void)
 {
     /*读取八路光电传感器*/
-    uint8_t nw    = (HAL_GPIO_ReadPin(FIGHT_IR_NW_PORT,    FIGHT_IR_NW_PIN)    == FIGHT_IR_TRIGGERED);
-    uint8_t ne    = (HAL_GPIO_ReadPin(FIGHT_IR_NE_PORT,    FIGHT_IR_NE_PIN)    == FIGHT_IR_TRIGGERED);
-    uint8_t l     = (HAL_GPIO_ReadPin(FIGHT_IR_L_PORT,     FIGHT_IR_L_PIN)     != FIGHT_IR_TRIGGERED);
-    uint8_t r     = (HAL_GPIO_ReadPin(FIGHT_IR_R_PORT,     FIGHT_IR_R_PIN)     != FIGHT_IR_TRIGGERED);
-    uint8_t sw    = (HAL_GPIO_ReadPin(FIGHT_IR_SW_PORT,    FIGHT_IR_SW_PIN)    == FIGHT_IR_TRIGGERED);
-    uint8_t se    = (HAL_GPIO_ReadPin(FIGHT_IR_SE_PORT,    FIGHT_IR_SE_PIN)    == FIGHT_IR_TRIGGERED);
-    uint8_t front = (HAL_GPIO_ReadPin(FIGHT_IR_FRONT_PORT, FIGHT_IR_FRONT_PIN) == FIGHT_IR_TRIGGERED);
-    uint8_t back  = (HAL_GPIO_ReadPin(FIGHT_IR_BACK_PORT,  FIGHT_IR_BACK_PIN)  == FIGHT_IR_TRIGGERED);
+    uint8_t nw          = (HAL_GPIO_ReadPin(FIGHT_IR_NW_PORT,          FIGHT_IR_NW_PIN)          == FIGHT_IR_TRIGGERED);
+    uint8_t ne          = (HAL_GPIO_ReadPin(FIGHT_IR_NE_PORT,          FIGHT_IR_NE_PIN)          == FIGHT_IR_TRIGGERED);
+    uint8_t l           = (HAL_GPIO_ReadPin(FIGHT_IR_L_PORT,           FIGHT_IR_L_PIN)           != FIGHT_IR_TRIGGERED);
+    uint8_t r           = (HAL_GPIO_ReadPin(FIGHT_IR_R_PORT,           FIGHT_IR_R_PIN)           != FIGHT_IR_TRIGGERED);
+    uint8_t sw          = (HAL_GPIO_ReadPin(FIGHT_IR_SW_PORT,          FIGHT_IR_SW_PIN)          == FIGHT_IR_TRIGGERED);
+    uint8_t se          = (HAL_GPIO_ReadPin(FIGHT_IR_SE_PORT,          FIGHT_IR_SE_PIN)          == FIGHT_IR_TRIGGERED);
+    uint8_t front_left  = (HAL_GPIO_ReadPin(FIGHT_IR_FRONT_LEFT_PORT,  FIGHT_IR_FRONT_LEFT_PIN)  == FIGHT_IR_TRIGGERED);
+    uint8_t front_right = (HAL_GPIO_ReadPin(FIGHT_IR_FRONT_RIGHT_PORT, FIGHT_IR_FRONT_RIGHT_PIN) == FIGHT_IR_TRIGGERED);
+    uint8_t back        = (HAL_GPIO_ReadPin(FIGHT_IR_BACK_PORT,        FIGHT_IR_BACK_PIN)        == FIGHT_IR_TRIGGERED);
 
     /*判断敌人方向*/
-    if(front)return DIR_FRONT;
+    if(front_left && front_right) return DIR_FRONT;
+    if(front_left) return DIR_FRONT_LEFT;
+    if(front_right) return DIR_FRONT_RIGHT;
     if(nw) return DIR_FRONT_LEFT;
     if(ne) return DIR_FRONT_RIGHT;
     if(l)  return DIR_LEFT;

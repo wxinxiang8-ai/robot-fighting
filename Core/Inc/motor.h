@@ -40,8 +40,20 @@ typedef enum{
     MOTOR_4=4 //PD14,PD15
 }MOTOR_ID;
 
+typedef struct {
+    int16_t target_left;
+    int16_t target_right;
+    int16_t measured_left;
+    int16_t measured_right;
+    int16_t output_left;
+    int16_t output_right;
+} Motor_DebugStatus_t;
+
 void MOTOR_Init(void);
 void MOTOR_SetSpeed(MOTOR_ID motor_id, int16_t speed);
+void Motor_PID_Init(void);
+void Motor_PID_Service(void);
+void Motor_Debug_GetStatus(Motor_DebugStatus_t *status);
 
 void drive_For_L(void);//前进(低中高)
 void drive_For_M(void);

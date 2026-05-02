@@ -17,8 +17,10 @@
 #define FIGHT_IR_SW_PORT      IR_9_GPIO_Port
 #define FIGHT_IR_SE_PIN IR_7_Pin //右后角
 #define FIGHT_IR_SE_PORT      IR_7_GPIO_Port
-#define FIGHT_IR_FRONT_PIN    IR_4_Pin //正前方
-#define FIGHT_IR_FRONT_PORT   IR_4_GPIO_Port
+#define FIGHT_IR_FRONT_LEFT_PIN  IR_4_Pin //前方偏左
+#define FIGHT_IR_FRONT_LEFT_PORT IR_4_GPIO_Port
+#define FIGHT_IR_FRONT_RIGHT_PIN IR11_Pin //前方偏右
+#define FIGHT_IR_FRONT_RIGHT_PORT IR11_GPIO_Port
 #define FIGHT_IR_BACK_PIN     IR_8_Pin //正后方
 #define FIGHT_IR_BACK_PORT    IR_8_GPIO_Port
 

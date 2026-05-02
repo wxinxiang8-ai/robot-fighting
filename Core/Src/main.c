@@ -32,6 +32,7 @@
 #include "shade.h"
 #include "obstacle.h"
 #include "motor.h"
+#include "encoder.h"
 #include "oled.h"
 #include "oled_font.h"
 #include "robot_up.h"
@@ -54,6 +55,7 @@
 #define BACKUP_TEST_MODE       0
 #define IR_OLED_TEST_MODE      0
 #define VISION_OLED_TEST_MODE  0
+#define PID_DEBUG_MODE         1
 
 /* USER CODE END PD */
 
@@ -109,7 +111,51 @@ static void Backup_Test_ServiceVisionCmd(void)
     Backup_Test_LastDCmdTick = now;
   }
 }
+#endif
 
+#if PID_DEBUG_MODE
+#define PID_DEBUG_STEP_MS      3000U
+#define PID_DEBUG_PRINT_MS     50U
+
+static int16_t PID_Debug_GetTarget(void)
+{
+  static const int16_t target_table[] = {100, 200, 300, 400, 500, 400, 300, 200, 100, 0};
+  uint32_t phase = (HAL_GetTick() / PID_DEBUG_STEP_MS) % (sizeof(target_table) / sizeof(target_table[0]));
+
+  return target_table[phase];
+}
+
+static void PID_Debug_Update(void)
+{
+  static uint32_t pid_debug_last_print = 0;
+  int16_t target = PID_Debug_GetTarget();
+  uint32_t now = HAL_GetTick();
+
+  drive_user_defined(target, target);
+  Motor_PID_Service();
+
+  if ((now - pid_debug_last_print) >= PID_DEBUG_PRINT_MS)
+  {
+    Motor_DebugStatus_t status;
+    char uart_buf[128] = {0};
+    int len;
+
+    pid_debug_last_print = now;
+    Motor_Debug_GetStatus(&status);
+    len = snprintf(uart_buf, sizeof(uart_buf),
+                   "d:%d,%d,%d,%d,%d,%d\n",
+                   status.target_left,
+                   status.measured_left,
+                   status.output_left,
+                   status.target_right,
+                   status.measured_right,
+                   status.output_right);
+    if (len > 0)
+    {
+      HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf, (uint16_t)len, 100);
+    }
+  }
+}
 #endif
 
 /* USER CODE END 0 */
@@ -170,6 +216,9 @@ int main(void)
   Shade_Sensor_Init();
 #elif BACKUP_TEST_MODE
   MOTOR_Init();
+  ENCODER_Init();
+  ENCODER_ResetAll();
+  Motor_PID_Init();
   Backup_Init();
   MOTOR_StopAll();
   OLED_Init();
@@ -198,8 +247,17 @@ int main(void)
   Startup_WaitForTrigger();
   Vision_Init();
   OLED_ShowString(1, 1, (Current_Team == TEAM_YELLOW) ? "Vision Y" : "Vision B");
+#elif PID_DEBUG_MODE
+  MOTOR_Init();
+  ENCODER_Init();
+  ENCODER_ResetAll();
+  Motor_PID_Init();
+  MOTOR_StopAll();
 #else
   MOTOR_Init();
+  ENCODER_Init();
+  ENCODER_ResetAll();
+  Motor_PID_Init();
   Backup_Init();
   MOTOR_StopAll();
   Startup_WaitForTrigger();
@@ -255,6 +313,7 @@ int main(void)
     Shade_TestInject_Enable(BACKUP_TEST_OFF_STAGE_ADC, BACKUP_TEST_OFF_STAGE_ADC);
     Backup_Test_ServiceVisionCmd();
     Backup_Update();
+    Motor_PID_Service();
     if (vision_target.type != 'X')
     {
       Backup_Test_LastNonXType = vision_target.type;
@@ -266,9 +325,9 @@ int main(void)
 #elif IR_OLED_TEST_MODE
     Obs_Sensor_ReadAll();
 
-    char uart_buf[96] = {0};
+    char uart_buf[128] = {0};
     int len = snprintf(uart_buf, sizeof(uart_buf),
-                       "IR1:%d,IR2:%d,IR3:%d,IR4:%d,IR5:%d,IR6:%d,IR7:%d,IR8:%d,IR9:%d,IR10:%d\r\n",
+                       "IR1:%d,IR2:%d,IR3:%d,IR4:%d,IR5:%d,IR6:%d,IR7:%d,IR8:%d,IR9:%d,IR10:%d,IR11:%d,IR12:%d,IR13:%d\r\n",
                        Obs_Data.IR1 == GPIO_PIN_SET ? 1 : 0,
                        Obs_Data.IR2 == GPIO_PIN_SET ? 1 : 0,
                        Obs_Data.IR3 == GPIO_PIN_SET ? 1 : 0,
@@ -278,7 +337,10 @@ int main(void)
                        Obs_Data.IR7 == GPIO_PIN_SET ? 1 : 0,
                        Obs_Data.IR8 == GPIO_PIN_SET ? 1 : 0,
                        Obs_Data.IR9 == GPIO_PIN_SET ? 1 : 0,
-                       Obs_Data.IR10 == GPIO_PIN_SET ? 1 : 0);
+                       Obs_Data.IR10 == GPIO_PIN_SET ? 1 : 0,
+                       Obs_Data.IR11 == GPIO_PIN_SET ? 1 : 0,
+                       Obs_Data.IR12 == GPIO_PIN_SET ? 1 : 0,
+                       Obs_Data.IR13 == GPIO_PIN_SET ? 1 : 0);
     if (len > 0)
     {
       HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf, (uint16_t)len, 100);
@@ -307,6 +369,9 @@ int main(void)
       }
       HAL_Delay(100);
     }
+#elif PID_DEBUG_MODE
+    PID_Debug_Update();
+    HAL_Delay(1);
 #else
     Edge_Sensor_Detect();
     uint32_t now = HAL_GetTick();
@@ -314,6 +379,7 @@ int main(void)
     {
       control_last_tick = now;
       Robot_Control_Update();
+      Motor_PID_Service();
     }
 #endif
     /* USER CODE END WHILE */
