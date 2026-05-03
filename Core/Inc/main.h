@@ -95,10 +95,10 @@ void Error_Handler(void);
 #define IR_7_GPIO_Port GPIOE
 #define IR_8_Pin GPIO_PIN_14
 #define IR_8_GPIO_Port GPIOE
-#define mpu_scl_Pin GPIO_PIN_10
-#define mpu_scl_GPIO_Port GPIOB
-#define mpu_sda_Pin GPIO_PIN_11
-#define mpu_sda_GPIO_Port GPIOB
+#define jy62_tx_Pin GPIO_PIN_10
+#define jy62_tx_GPIO_Port GPIOB
+#define jy62_rx_Pin GPIO_PIN_11
+#define jy62_rx_GPIO_Port GPIOB
 #define motor1_a_Pin GPIO_PIN_12
 #define motor1_a_GPIO_Port GPIOD
 #define motor1_b_Pin GPIO_PIN_13

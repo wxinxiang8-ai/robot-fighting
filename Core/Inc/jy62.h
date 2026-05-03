@@ -30,6 +30,7 @@ extern volatile JY62_Data_t jy62_data;
 
 void JY62_Init(void);
 void JY62_Update(void);
+void JY62_UART_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size);
 uint8_t JY62_IsOnline(void);
 uint8_t JY62_IsStable(float max_roll_deg, float max_pitch_deg);
 

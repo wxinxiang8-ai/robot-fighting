@@ -193,13 +193,13 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM4_Init();
   MX_I2C1_Init();
-  MX_I2C2_Init();
   MX_USART2_UART_Init();
   MX_TIM3_Init();
   MX_TIM5_Init();
   MX_TIM8_Init();
   MX_TIM2_Init();
   MX_TIM9_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
   
 #if SHADE_OLED_TEST_MODE
@@ -262,6 +262,7 @@ int main(void)
   MOTOR_StopAll();
   Startup_WaitForTrigger();
   Vision_Init();
+  JY62_Init();
   Vision_SendCmd('N');
   Robot_Control_Init();
 #endif
@@ -374,6 +375,7 @@ int main(void)
     HAL_Delay(1);
 #else
     Edge_Sensor_Detect();
+    JY62_Update();
     uint32_t now = HAL_GetTick();
     if ((now - control_last_tick) >= 5U)
     {

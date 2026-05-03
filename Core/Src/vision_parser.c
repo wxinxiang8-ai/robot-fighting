@@ -13,6 +13,7 @@
  */
 #include "vision_parser.h"
 #include "usart.h"
+#include "jy62.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -143,20 +144,27 @@ static void parse_buffer(const uint8_t *buf, uint16_t size)
 /* ------------------------------------------------------------------ */
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
-    if (huart->Instance != USART2) return;
+    if (huart->Instance == USART2)
+    {
+        vision_rx_total++;
 
-    vision_rx_total++;
+        /* 多帧解析: 处理缓冲区中所有完整帧 */
+        if (Size > 0u) {
+            parse_buffer(dma_rx_buf, Size);
+        }
 
-    /* 多帧解析: 处理缓冲区中所有完整帧 */
-    if (Size > 0u) {
-        parse_buffer(dma_rx_buf, Size);
+        /* 立即重启DMA接收, 准备下一帧 */
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart2, dma_rx_buf, DMA_RX_BUF_SIZE);
+
+        /* 禁用半传输中断, 防止在缓冲区半满时误触发回调 */
+        __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT);
+        return;
     }
 
-    /* 立即重启DMA接收, 准备下一帧 */
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart2, dma_rx_buf, DMA_RX_BUF_SIZE);
-
-    /* 禁用半传输中断, 防止在缓冲区半满时误触发回调 */
-    __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT);
+    if (huart->Instance == USART3)
+    {
+        JY62_UART_RxEventCallback(huart, Size);
+    }
 }
 
 /* ------------------------------------------------------------------ */
