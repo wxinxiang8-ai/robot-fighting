@@ -40,6 +40,7 @@
 #include "robot_backup.h"
 #include "robot_control.h"
 #include "vision_parser.h"
+#include "jy62.h"
 #include <stdio.h>
 /* USER CODE END Includes */
 
@@ -216,6 +217,7 @@ int main(void)
   ENCODER_Init();
   ENCODER_ResetAll();
   Motor_PID_Init();
+  JY62_Init();
   Backup_Init();
   MOTOR_StopAll();
   OLED_Init();
@@ -255,6 +257,7 @@ int main(void)
   ENCODER_Init();
   ENCODER_ResetAll();
   Motor_PID_Init();
+  JY62_Init();
   Backup_Init();
   MOTOR_StopAll();
   Startup_WaitForTrigger();

@@ -4,7 +4,6 @@
 #include "robot_fight.h"
 #include "robot_backup.h"
 #include "motor.h"
-#include "vision_parser.h"
 
 static RobotState robot_state;
 static uint8_t roaming_enemy_confirm_count = 0;
@@ -19,7 +18,6 @@ static void Robot_Control_EnterRoaming(void)
 static void Robot_Control_EnterBackup(void)
 {
     MOTOR_BrakeAll();
-    Vision_SendCmd('D');
     Backup_Init();
     robot_state = ROBOT_BACKUP;
 }
@@ -86,7 +84,6 @@ void Robot_Control_Update(void)
             Backup_Update();
             if (Backup_IsDone())
             {
-                Vision_SendCmd('S');
                 robot_state = ROBOT_ROAMING;
             }
             break;
