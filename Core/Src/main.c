@@ -56,7 +56,8 @@
 #define BACKUP_TEST_MODE       0
 #define IR_OLED_TEST_MODE      0
 #define VISION_OLED_TEST_MODE  0
-#define PID_DEBUG_MODE         1
+#define JY62_TEST_MODE         1
+#define PID_DEBUG_MODE         0
 
 /* USER CODE END PD */
 
@@ -110,6 +111,74 @@ static void Backup_Test_ServiceVisionCmd(void)
   {
     Vision_SendCmd('D');
     Backup_Test_LastDCmdTick = now;
+  }
+}
+#endif
+
+#if JY62_TEST_MODE
+#define JY62_TEST_PRINT_MS     100U
+
+static int32_t JY62_Test_Scale100(float value)
+{
+  if (value >= 0.0f)
+  {
+    return (int32_t)(value * 100.0f + 0.5f);
+  }
+
+  return (int32_t)(value * 100.0f - 0.5f);
+}
+
+static void JY62_Test_FormatDecimal(char *buf, uint8_t size, float value)
+{
+  int32_t scaled = JY62_Test_Scale100(value);
+  int32_t whole;
+  int32_t fraction;
+
+  if (scaled < 0)
+  {
+    scaled = -scaled;
+    whole = scaled / 100;
+    fraction = scaled % 100;
+    snprintf(buf, size, "-%ld.%02ld", (long)whole, (long)fraction);
+    return;
+  }
+
+  whole = scaled / 100;
+  fraction = scaled % 100;
+  snprintf(buf, size, "%ld.%02ld", (long)whole, (long)fraction);
+}
+
+static void JY62_Test_Update(void)
+{
+  static uint32_t jy62_test_last_print = 0;
+  uint32_t now = HAL_GetTick();
+
+  JY62_Update();
+
+  if ((now - jy62_test_last_print) >= JY62_TEST_PRINT_MS)
+  {
+    char uart_buf[80] = {0};
+    char roll_buf[12] = {0};
+    char pitch_buf[12] = {0};
+    char yaw_buf[12] = {0};
+    char gz_buf[12] = {0};
+    int len;
+
+    jy62_test_last_print = now;
+    JY62_Test_FormatDecimal(roll_buf, sizeof(roll_buf), jy62_data.roll_deg);
+    JY62_Test_FormatDecimal(pitch_buf, sizeof(pitch_buf), jy62_data.pitch_deg);
+    JY62_Test_FormatDecimal(yaw_buf, sizeof(yaw_buf), jy62_data.yaw_deg);
+    JY62_Test_FormatDecimal(gz_buf, sizeof(gz_buf), jy62_data.gz_dps);
+    len = snprintf(uart_buf, sizeof(uart_buf),
+                   "%s,%s,%s,%s\r\n",
+                   roll_buf,
+                   pitch_buf,
+                   yaw_buf,
+                   gz_buf);
+    if (len > 0)
+    {
+      HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf, (uint16_t)len, 100);
+    }
   }
 }
 #endif
@@ -246,6 +315,8 @@ int main(void)
   Startup_WaitForTrigger();
   Vision_Init();
   OLED_ShowString(1, 1, (Current_Team == TEAM_YELLOW) ? "Vision Y" : "Vision B");
+#elif JY62_TEST_MODE
+  JY62_Init();
 #elif PID_DEBUG_MODE
   MOTOR_Init();
   ENCODER_Init();
@@ -370,6 +441,9 @@ int main(void)
       }
       HAL_Delay(100);
     }
+#elif JY62_TEST_MODE
+    JY62_Test_Update();
+    HAL_Delay(10);
 #elif PID_DEBUG_MODE
     PID_Debug_Update();
     HAL_Delay(1);

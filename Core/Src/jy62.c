@@ -40,6 +40,7 @@ static void jy62_parse_frame(const uint8_t *frame)
 {
     if (!jy62_checksum_ok(frame))
     {
+        jy62_data.checksum_error_count++;
         return;
     }
 
@@ -78,6 +79,8 @@ static void jy62_parse_frame(const uint8_t *frame)
     }
 
     jy62_data.last_update_ms = now;
+    jy62_data.frame_count++;
+    jy62_data.last_frame_type = frame[1];
     jy62_data.online = 1u;
 }
 
@@ -143,6 +146,8 @@ void JY62_UART_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     {
         return;
     }
+
+    jy62_data.rx_bytes += Size;
 
     for (uint16_t i = 0u; i < Size; i++)
     {

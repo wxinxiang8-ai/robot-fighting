@@ -23,6 +23,10 @@ typedef struct {
     float pitch_deg;
     float yaw_deg;
     uint32_t last_update_ms;
+    uint32_t rx_bytes;
+    uint32_t frame_count;
+    uint32_t checksum_error_count;
+    uint8_t last_frame_type;
     uint8_t online;
 } JY62_Data_t;
 
