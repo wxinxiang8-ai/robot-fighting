@@ -114,15 +114,12 @@ static void Backup_Test_ServiceVisionCmd(void)
 #endif
 
 #if PID_DEBUG_MODE
-#define PID_DEBUG_STEP_MS      3000U
+#define PID_DEBUG_TARGET_SPEED 400
 #define PID_DEBUG_PRINT_MS     50U
 
 static int16_t PID_Debug_GetTarget(void)
 {
-  static const int16_t target_table[] = {100, 200, 300, 400, 500, 400, 300, 200, 100, 0};
-  uint32_t phase = (HAL_GetTick() / PID_DEBUG_STEP_MS) % (sizeof(target_table) / sizeof(target_table[0]));
-
-  return target_table[phase];
+  return PID_DEBUG_TARGET_SPEED;
 }
 
 static void PID_Debug_Update(void)

@@ -18,9 +18,10 @@ static int16_t motor_brake_right = 0;
 #define MOTOR_RIGHT_ENCODER_DIR   -1
 #define MOTOR_LEFT_SPEED_SCALE    10.0f
 #define MOTOR_RIGHT_SPEED_SCALE   10.0f
+#define MOTOR_MEASURE_FILTER_ALPHA 0.2f
 #define MOTOR_PID_PERIOD_MS       5U
-#define MOTOR_PID_KP              0.5f
-#define MOTOR_PID_KI              0.02f
+#define MOTOR_PID_KP              0.42f
+#define MOTOR_PID_KI              0.06f
 #define MOTOR_PID_KD              0.0f
 
 static int16_t motor_target_left = 0;
@@ -29,6 +30,8 @@ static int16_t motor_measured_left = 0;
 static int16_t motor_measured_right = 0;
 static int16_t motor_output_left = 0;
 static int16_t motor_output_right = 0;
+static float motor_filtered_left = 0.0f;
+static float motor_filtered_right = 0.0f;
 static uint32_t motor_pid_last_tick = 0;
 static PID_TypeDef motor_pid_left;
 static PID_TypeDef motor_pid_right;
@@ -40,6 +43,8 @@ static void Motor_PID_Reset(void)
     motor_pid_left.last_error = 0.0f;
     motor_pid_right.integral = 0.0f;
     motor_pid_right.last_error = 0.0f;
+    motor_filtered_left = 0.0f;
+    motor_filtered_right = 0.0f;
 }
 
 /* 记录状态机给出的左右轮组目标速度 */
@@ -85,9 +90,21 @@ static int16_t Motor_EncoderToSpeed(int16_t encoder_speed, int16_t encoder_dir, 
     return Motor_LimitSpeed((float)(encoder_dir * encoder_speed) * speed_scale);
 }
 
-static int16_t Motor_GetMeasuredSpeed(ENCODER_ID encoder_id, int16_t encoder_dir, float speed_scale)
+static int16_t Motor_FilterMeasured(float *filtered_speed, int16_t measured_speed)
 {
-    return Motor_EncoderToSpeed(ENCODER[encoder_id - 1].speed, encoder_dir, speed_scale);
+    *filtered_speed += ((float)measured_speed - *filtered_speed) * MOTOR_MEASURE_FILTER_ALPHA;
+    return (int16_t)(*filtered_speed);
+}
+
+static int16_t Motor_GetMeasuredSpeed(ENCODER_ID encoder_id,
+                                      int16_t encoder_dir,
+                                      float speed_scale,
+                                      float *filtered_speed)
+{
+    return Motor_FilterMeasured(filtered_speed,
+                                Motor_EncoderToSpeed(ENCODER[encoder_id - 1].speed,
+                                                     encoder_dir,
+                                                     speed_scale));
 }
 
 static void Motor_PID_StopOutput(void)
@@ -145,10 +162,12 @@ void Motor_PID_Service(void)
 
     left_measured = Motor_GetMeasuredSpeed(MOTOR_LEFT_ENCODER,
                                            MOTOR_LEFT_ENCODER_DIR,
-                                           MOTOR_LEFT_SPEED_SCALE);
+                                           MOTOR_LEFT_SPEED_SCALE,
+                                           &motor_filtered_left);
     right_measured = Motor_GetMeasuredSpeed(MOTOR_RIGHT_ENCODER,
                                             MOTOR_RIGHT_ENCODER_DIR,
-                                            MOTOR_RIGHT_SPEED_SCALE);
+                                            MOTOR_RIGHT_SPEED_SCALE,
+                                            &motor_filtered_right);
     motor_measured_left = left_measured;
     motor_measured_right = right_measured;
 
