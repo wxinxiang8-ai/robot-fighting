@@ -4,41 +4,22 @@
 #include "main.h"
 #include <stdbool.h>
 
-/*======引脚配置======*/
-#define FIGHT_IR_NW_PIN IR_3_Pin //左前角
-#define FIGHT_IR_NW_PORT      IR_3_GPIO_Port
-#define FIGHT_IR_NE_PIN IR_5_Pin //右前角
-#define FIGHT_IR_NE_PORT      IR_5_GPIO_Port
-#define FIGHT_IR_L_PIN IR_10_Pin //左侧角
-#define FIGHT_IR_L_PORT       IR_10_GPIO_Port
-#define FIGHT_IR_R_PIN IR_6_Pin //右侧角
-#define FIGHT_IR_R_PORT       IR_6_GPIO_Port
-#define FIGHT_IR_SW_PIN IR_9_Pin //左后角
-#define FIGHT_IR_SW_PORT      IR_9_GPIO_Port
-#define FIGHT_IR_SE_PIN IR_7_Pin //右后角
-#define FIGHT_IR_SE_PORT      IR_7_GPIO_Port
-#define FIGHT_IR_FRONT_LEFT_PIN  IR_4_Pin //前方偏左
-#define FIGHT_IR_FRONT_LEFT_PORT IR_4_GPIO_Port
-#define FIGHT_IR_FRONT_RIGHT_PIN IR11_Pin //前方偏右
-#define FIGHT_IR_FRONT_RIGHT_PORT IR11_GPIO_Port
-#define FIGHT_IR_BACK_PIN     IR_8_Pin //正后方
-#define FIGHT_IR_BACK_PORT    IR_8_GPIO_Port
-
-/*======触发电平======*/
-#define FIGHT_IR_TRIGGERED GPIO_PIN_RESET   
-
 /*======时间参数(ms)======*/
 #define FIGHT_ENGAGE_TIMEOUT 3000 //交战时间
 #define FIGHT_ENGAGE_LOST 500 //交战丢失时间
 #define FIGHT_EDGE_STOP_TIME 15 //边缘确认后停顿时间
 #define FIGHT_RETREAT_TIME 400 //撤退时间
+#define FIGHT_RETREAT_SPEED 700
 #define FIGHT_TURN_TIME   550 //掉头时间(180°)
+#define FIGHT_TURN_SPEED 500
 #define FIGHT_FB_RETREAT_TIME 500 //F/B回避先后退时间
+#define FIGHT_FB_RETREAT_SPEED 400
 #define FIGHT_FB_FORWARD_TIME 900 //F/B回避后前进时间
-#define FIGHT_TRACK_FRONT_SPIN_INNER_SPEED 420 //前侧方原地转向内侧轮速度
-#define FIGHT_TRACK_FRONT_SPIN_OUTER_SPEED 520 //前侧方原地转向外侧轮速度
-#define FIGHT_TRACK_PUSH_SPEED 500 //正前推进速度
-#define FIGHT_TRACK_SPIN_SPEED 650 //补角转向速度
+#define FIGHT_FB_ADVANCE_SPEED 350
+#define FIGHT_TRACK_FRONT_ARC_INNER_SPEED 40 //前侧方弧线内侧轮速度
+#define FIGHT_TRACK_FRONT_ARC_OUTER_SPEED 550 //前侧方弧线外侧轮速度
+#define FIGHT_TRACK_PUSH_SPEED 450 //正前推进速度
+#define FIGHT_TRACK_SPIN_SPEED 500 //补角转向速度
 #define FIGHT_VISION_CONFIRM_COUNT 2 //视觉类型消抖次数
 #define FIGHT_SHADE_CONFIRM_COUNT 3 //V0/V1灰度掉台确认次数
 
@@ -70,6 +51,7 @@ typedef enum{
 
 /* ============ 函数声明 ============ */
 void     Fight_Init(void);
+void     Fight_InitWithDir(EnemyDir dir);
 void     Fight_Update(void);
 bool     Fight_IsDone(void);
 EnemyDir Fight_GetEnemyDir(void);       // 获取敌人方向

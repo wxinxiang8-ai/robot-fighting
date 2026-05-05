@@ -3,7 +3,7 @@
 #include "pid.h"
 #include "encoder.h"
 
-/* 记录左右电机组最后的速度方向, 供制动用 */
+/* 记录左右电机组最后的目标速度方向, 供制动用 */
 static int16_t motor_last_left  = 0;
 static int16_t motor_last_right = 0;
 static uint8_t motor_braking = 0;
@@ -18,11 +18,17 @@ static int16_t motor_brake_right = 0;
 #define MOTOR_RIGHT_ENCODER_DIR   -1
 #define MOTOR_LEFT_SPEED_SCALE    10.0f
 #define MOTOR_RIGHT_SPEED_SCALE   10.0f
-#define MOTOR_MEASURE_FILTER_ALPHA 0.2f
+#define MOTOR_LEFT_MEASURE_FILTER_ALPHA  0.16f
+#define MOTOR_RIGHT_MEASURE_FILTER_ALPHA 0.26f
 #define MOTOR_PID_PERIOD_MS       5U
-#define MOTOR_PID_KP              0.42f
-#define MOTOR_PID_KI              0.06f
-#define MOTOR_PID_KD              0.0f
+#define MOTOR_LEFT_PID_KP         0.30f
+#define MOTOR_LEFT_PID_KI         0.035f
+#define MOTOR_LEFT_PID_KD         0.0f
+#define MOTOR_LEFT_PID_INTEGRAL_MAX 3000.0f
+#define MOTOR_RIGHT_PID_KP        0.33f
+#define MOTOR_RIGHT_PID_KI        0.04f
+#define MOTOR_RIGHT_PID_KD        0.0f
+#define MOTOR_RIGHT_PID_INTEGRAL_MAX 3000.0f
 
 static int16_t motor_target_left = 0;
 static int16_t motor_target_right = 0;
@@ -52,6 +58,8 @@ static void Motor_SetTargetSpeed(int16_t left_speed, int16_t right_speed)
 {
     motor_target_left = left_speed;
     motor_target_right = right_speed;
+    motor_last_left = left_speed;
+    motor_last_right = right_speed;
 }
 
 /* 将左右轮组速度一次性写入四路电机 */
@@ -84,27 +92,45 @@ static int16_t Motor_LimitSpeed(float speed)
     return (int16_t)speed;
 }
 
-/* 将编码器每 5ms 脉冲数换算到 SPEED_xxx 速度单位 */
-static int16_t Motor_EncoderToSpeed(int16_t encoder_speed, int16_t encoder_dir, float speed_scale)
+/* 将编码器脉冲差换算到 5ms 等效 SPEED_xxx 速度单位 */
+static float Motor_EncoderToSpeed(int16_t encoder_speed,
+                                  int16_t encoder_dir,
+                                  float speed_scale,
+                                  uint32_t elapsed_ms)
 {
-    return Motor_LimitSpeed((float)(encoder_dir * encoder_speed) * speed_scale);
+    float speed = (float)(encoder_dir * encoder_speed) * speed_scale;
+    speed = speed * (float)MOTOR_PID_PERIOD_MS / (float)elapsed_ms;
+
+    if (speed > SPEED_MAX_INPUT)
+    {
+        return (float)SPEED_MAX_INPUT;
+    }
+    if (speed < -SPEED_MAX_INPUT)
+    {
+        return (float)-SPEED_MAX_INPUT;
+    }
+    return speed;
 }
 
-static int16_t Motor_FilterMeasured(float *filtered_speed, int16_t measured_speed)
+static float Motor_FilterMeasured(float *filtered_speed, float measured_speed, float filter_alpha)
 {
-    *filtered_speed += ((float)measured_speed - *filtered_speed) * MOTOR_MEASURE_FILTER_ALPHA;
-    return (int16_t)(*filtered_speed);
+    *filtered_speed += (measured_speed - *filtered_speed) * filter_alpha;
+    return *filtered_speed;
 }
 
-static int16_t Motor_GetMeasuredSpeed(ENCODER_ID encoder_id,
-                                      int16_t encoder_dir,
-                                      float speed_scale,
-                                      float *filtered_speed)
+static float Motor_GetMeasuredSpeed(ENCODER_ID encoder_id,
+                                    int16_t encoder_dir,
+                                    float speed_scale,
+                                    float *filtered_speed,
+                                    float filter_alpha,
+                                    uint32_t elapsed_ms)
 {
     return Motor_FilterMeasured(filtered_speed,
                                 Motor_EncoderToSpeed(ENCODER[encoder_id - 1].speed,
                                                      encoder_dir,
-                                                     speed_scale));
+                                                     speed_scale,
+                                                     elapsed_ms),
+                                filter_alpha);
 }
 
 static void Motor_PID_StopOutput(void)
@@ -133,8 +159,10 @@ void MOTOR_Init(void)
 /* 初始化左右轮组速度闭环 PID */
 void Motor_PID_Init(void)
 {
-    PID_Init(&motor_pid_left, MOTOR_PID_KP, MOTOR_PID_KI, MOTOR_PID_KD, -SPEED_MAX_INPUT, SPEED_MAX_INPUT);
-    PID_Init(&motor_pid_right, MOTOR_PID_KP, MOTOR_PID_KI, MOTOR_PID_KD, -SPEED_MAX_INPUT, SPEED_MAX_INPUT);
+    PID_Init(&motor_pid_left, MOTOR_LEFT_PID_KP, MOTOR_LEFT_PID_KI, MOTOR_LEFT_PID_KD, -SPEED_MAX_INPUT, SPEED_MAX_INPUT);
+    PID_Init(&motor_pid_right, MOTOR_RIGHT_PID_KP, MOTOR_RIGHT_PID_KI, MOTOR_RIGHT_PID_KD, -SPEED_MAX_INPUT, SPEED_MAX_INPUT);
+    motor_pid_left.integral_max = MOTOR_LEFT_PID_INTEGRAL_MAX;
+    motor_pid_right.integral_max = MOTOR_RIGHT_PID_INTEGRAL_MAX;
     motor_pid_last_tick = HAL_GetTick();
 }
 
@@ -142,12 +170,13 @@ void Motor_PID_Init(void)
 void Motor_PID_Service(void)
 {
     uint32_t now = HAL_GetTick();
+    uint32_t elapsed_ms = now - motor_pid_last_tick;
     int16_t left_output;
     int16_t right_output;
-    int16_t left_measured;
-    int16_t right_measured;
+    float left_measured;
+    float right_measured;
 
-    if ((now - motor_pid_last_tick) < MOTOR_PID_PERIOD_MS)
+    if (elapsed_ms < MOTOR_PID_PERIOD_MS)
     {
         return;
     }
@@ -163,13 +192,17 @@ void Motor_PID_Service(void)
     left_measured = Motor_GetMeasuredSpeed(MOTOR_LEFT_ENCODER,
                                            MOTOR_LEFT_ENCODER_DIR,
                                            MOTOR_LEFT_SPEED_SCALE,
-                                           &motor_filtered_left);
+                                           &motor_filtered_left,
+                                           MOTOR_LEFT_MEASURE_FILTER_ALPHA,
+                                           elapsed_ms);
     right_measured = Motor_GetMeasuredSpeed(MOTOR_RIGHT_ENCODER,
                                             MOTOR_RIGHT_ENCODER_DIR,
                                             MOTOR_RIGHT_SPEED_SCALE,
-                                            &motor_filtered_right);
-    motor_measured_left = left_measured;
-    motor_measured_right = right_measured;
+                                            &motor_filtered_right,
+                                            MOTOR_RIGHT_MEASURE_FILTER_ALPHA,
+                                            elapsed_ms);
+    motor_measured_left = (int16_t)left_measured;
+    motor_measured_right = (int16_t)right_measured;
 
     if (motor_target_left == 0 && motor_target_right == 0)
     {
@@ -180,8 +213,8 @@ void Motor_PID_Service(void)
     motor_pid_left.setpoint = (float)motor_target_left;
     motor_pid_right.setpoint = (float)motor_target_right;
 
-    left_output = Motor_LimitSpeed((float)motor_target_left + PID_Compute(&motor_pid_left, (float)left_measured));
-    right_output = Motor_LimitSpeed((float)motor_target_right + PID_Compute(&motor_pid_right, (float)right_measured));
+    left_output = Motor_LimitSpeed((float)motor_target_left + PID_Compute(&motor_pid_left, left_measured));
+    right_output = Motor_LimitSpeed((float)motor_target_right + PID_Compute(&motor_pid_right, right_measured));
 
     motor_output_left = left_output;
     motor_output_right = right_output;
@@ -210,7 +243,6 @@ void MOTOR_SetSpeed(MOTOR_ID motor_id, int16_t speed)
     {
         case MOTOR_1:
         case MOTOR_2:
-            motor_last_left = speed;
             if (speed >= 0)
             {
                 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pulse); // Motor1_A
@@ -225,7 +257,6 @@ void MOTOR_SetSpeed(MOTOR_ID motor_id, int16_t speed)
 
         case MOTOR_3:
         case MOTOR_4:
-            motor_last_right = speed;
             if (speed >= 0)
             {
                 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, pulse); // Motor4_A
@@ -252,6 +283,15 @@ void MOTOR_StopAll(void)
 /* 根据当前运动方向启动两级非阻塞反向制动 */
 static void motor_start_brake(uint8_t stop_on_finish)
 {
+    if (motor_braking)
+    {
+        if (stop_on_finish)
+        {
+            motor_brake_stop_on_finish = 1;
+        }
+        return;
+    }
+
     motor_brake_left = (motor_last_left > 0) ? -BRAKE_PULSE_SPEED :
                        (motor_last_left < 0) ?  BRAKE_PULSE_SPEED : 0;
     motor_brake_right = (motor_last_right > 0) ? -BRAKE_PULSE_SPEED :

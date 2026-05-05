@@ -3,6 +3,9 @@
 
 #include "main.h"
 
+#define OBS_EDGE_TRIGGERED_STATE GPIO_PIN_SET
+#define OBS_BLOCKED_STATE GPIO_PIN_RESET
+
 // 定义传感器数据结构体
 typedef struct {
     GPIO_PinState IR1; // 传感器1状态 (0或1)

@@ -23,16 +23,37 @@ static uint32_t Roaming_StartTime = 0;
 static bool Roaming_Done = false;
 static RoamingBackReason Roaming_BackReason = BACK_REASON_NONE;
 static uint32_t Roaming_TurnDuration = ROAMING_TURN_LEFT_TIME;
-static RoamingBackReason Roaming_PendingBackReason = BACK_REASON_NONE;
-static uint8_t Roaming_EdgeCount = 0;
 static uint8_t Roaming_ShadeCount = 0;
 static RoamingTurnDir Roaming_LastTurnDir = ROAMING_TURN_DIR_NONE;
 static RoamingTurnDir Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
 static RoamingBackReason Roaming_LastSingleBackReason = BACK_REASON_NONE;
 static uint8_t Roaming_SameSideRepeatCount = 0;
+static uint8_t Roaming_RearEdgeCount = 0;
+
+static int detect_rear_edge(void)
+{
+    return 0;
+}
+
+static RoamingBackReason get_front_edge_reason(void)
+{
+    if(Obs_Data.IR1 == OBS_EDGE_TRIGGERED_STATE && Obs_Data.IR2 == OBS_EDGE_TRIGGERED_STATE)
+    {
+        return BACK_REASON_BOTH;
+    }
+    if(Obs_Data.IR1 == OBS_EDGE_TRIGGERED_STATE && Obs_Data.IR2 != OBS_EDGE_TRIGGERED_STATE)
+    {
+        return BACK_REASON_RIGHT;
+    }
+    if(Obs_Data.IR1 != OBS_EDGE_TRIGGERED_STATE && Obs_Data.IR2 == OBS_EDGE_TRIGGERED_STATE)
+    {
+        return BACK_REASON_LEFT;
+    }
+    return BACK_REASON_NONE;
+}
 
 /**
- * @description: 检测是否掉落擂台（V0/V1 任一超阈值判定掉台）
+ * @description: 检测是否掉落擂台（V0/V1 两路同时超阈值判定掉台）
  * @param void
  * @return int 1=掉落擂台, 0=在擂台上
  */
@@ -40,7 +61,7 @@ static int detect_shade(void)
 {
     site_detect_shade();//read shade sensor data
 
-    if((voltage_v0 > 2.8f && voltage_v0 < 3.0f) ||
+    if((voltage_v0 > 2.8f && voltage_v0 < 3.0f) &&
        (voltage_v1 > 2.8f && voltage_v1 < 3.0f))
     {
         if(Roaming_ShadeCount < ROAMING_SHADE_CONFIRM_COUNT)
@@ -68,13 +89,12 @@ void Roaming_Init(void)
     Roaming_StartTime = HAL_GetTick();
     Roaming_Done = false;
     Roaming_BackReason = BACK_REASON_NONE;
-    Roaming_PendingBackReason = BACK_REASON_NONE;
-    Roaming_EdgeCount = 0;
     Roaming_ShadeCount = 0;
     Roaming_LastTurnDir = ROAMING_TURN_DIR_NONE;
     Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
     Roaming_LastSingleBackReason = BACK_REASON_NONE;
     Roaming_SameSideRepeatCount = 0;
+    Roaming_RearEdgeCount = 0;
 }
 
 /**
@@ -86,6 +106,10 @@ void Roaming_Update(void)
 {
     uint32_t current_time = HAL_GetTick();
     uint32_t elapsed_time = current_time - Roaming_StartTime;
+    RoamingBackReason current_reason;
+
+    Edge_Sensor_Detect();
+    current_reason = get_front_edge_reason();
 
     // 非前进态下保持原有灰度掉台保护
     if(Roaming_Stage != ROAMING_FORWARD && detect_shade())
@@ -96,29 +120,56 @@ void Roaming_Update(void)
         return;
     }
 
-    RoamingBackReason current_reason = BACK_REASON_NONE;
+    if(Roaming_Stage != ROAMING_FORWARD &&
+       Roaming_Stage != ROAMING_EDGE_STOP &&
+       Roaming_Stage != ROAMING_REAR_EDGE_STOP &&
+       Roaming_Stage != ROAMING_REAR_ESCAPE &&
+       Roaming_Stage != ROAMING_DONE)
+    {
+        if(Obs_Data.IR1 != OBS_EDGE_TRIGGERED_STATE && Obs_Data.IR2 != OBS_EDGE_TRIGGERED_STATE && detect_rear_edge())
+        {
+            if(Roaming_RearEdgeCount < ROAMING_EDGE_CONFIRM_COUNT)
+            {
+                Roaming_RearEdgeCount++;
+            }
+            if(Roaming_RearEdgeCount >= ROAMING_EDGE_CONFIRM_COUNT)
+            {
+                MOTOR_BrakeAll();
+                Roaming_ShadeCount = 0;
+                Roaming_RearEdgeCount = 0;
+                Roaming_Stage = ROAMING_REAR_EDGE_STOP;
+                Roaming_StartTime = current_time;
+                return;
+            }
+        }
+        else
+        {
+            Roaming_RearEdgeCount = 0;
+        }
+    }
 
     switch(Roaming_Stage)
     {
         case ROAMING_FORWARD:
-            // 使用主循环高频更新的边缘缓存，优先处理悬崖
-            if(Obs_Data.IR1 == SET && Obs_Data.IR2 == SET)
-            {
-                current_reason = BACK_REASON_BOTH;
-            }
-            else if(Obs_Data.IR1 == SET && Obs_Data.IR2 == RESET)
-            {
-                current_reason = BACK_REASON_RIGHT;
-            }
-            else if(Obs_Data.IR1 == RESET && Obs_Data.IR2 == SET)
-            {
-                current_reason = BACK_REASON_LEFT;
-            }
-
             if(current_reason == BACK_REASON_NONE)
             {
-                Roaming_PendingBackReason = BACK_REASON_NONE;
-                Roaming_EdgeCount = 0;
+                if(detect_rear_edge())
+                {
+                    if(Roaming_RearEdgeCount < ROAMING_EDGE_CONFIRM_COUNT)
+                    {
+                        Roaming_RearEdgeCount++;
+                    }
+                    if(Roaming_RearEdgeCount >= ROAMING_EDGE_CONFIRM_COUNT)
+                    {
+                        MOTOR_BrakeAll();
+                        Roaming_ShadeCount = 0;
+                        Roaming_RearEdgeCount = 0;
+                        Roaming_Stage = ROAMING_REAR_EDGE_STOP;
+                        Roaming_StartTime = current_time;
+                    }
+                    break;
+                }
+                Roaming_RearEdgeCount = 0;
 
                 // 无边缘预警时，再做灰度掉台判断
                 if(detect_shade())
@@ -129,37 +180,21 @@ void Roaming_Update(void)
                     break;
                 }
 
-                // 若仍处于边缘预刹车阶段，则先不恢复前进，避免覆盖刹车输出
                 if(MOTOR_IsBraking())
                 {
                     break;
                 }
 
-                // 仅在无边缘预警且刹车已结束时继续前进
-                drive_For_Roaming();
+                drive_user_defined(ROAMING_FORWARD_SPEED, ROAMING_FORWARD_SPEED);
             }
             else
             {
-                // 边缘预警期间清掉灰度累计，避免灰度抢先进入掉台
                 Roaming_ShadeCount = 0;
-                if(current_reason != Roaming_PendingBackReason)
-                {
-                    Roaming_PendingBackReason = current_reason;
-                    Roaming_EdgeCount = 1;
-                    MOTOR_BrakeAllRelease();
-                }
-                else
-                {
-                    Roaming_EdgeCount++;
-                    if(Roaming_EdgeCount >= ROAMING_EDGE_CONFIRM_COUNT)
-                    {
-                        Roaming_BackReason = current_reason;
-                        Roaming_Stage = ROAMING_EDGE_STOP;
-                        Roaming_StartTime = current_time;
-                        Roaming_PendingBackReason = BACK_REASON_NONE;
-                        Roaming_EdgeCount = 0;
-                    }
-                }
+                Roaming_RearEdgeCount = 0;
+                Roaming_BackReason = current_reason;
+                Roaming_Stage = ROAMING_EDGE_STOP;
+                Roaming_StartTime = current_time;
+                MOTOR_BrakeAllRelease();
             }
             break;
 
@@ -173,7 +208,7 @@ void Roaming_Update(void)
 
         case ROAMING_BACK:
             // 后退状态
-            drive_user_defined(-450, -450);
+            drive_user_defined(-ROAMING_BACK_SPEED, -ROAMING_BACK_SPEED);
             
             if(elapsed_time >= ROAMING_BACK_TIME)
             {
@@ -246,7 +281,7 @@ void Roaming_Update(void)
             
         case ROAMING_TURN_LEFT:
             // 左转状态
-            drive_user_defined(-400, 400);
+            drive_user_defined(-ROAMING_TURN_SPEED, ROAMING_TURN_SPEED);
             
             if(elapsed_time >= Roaming_TurnDuration)
             {
@@ -258,7 +293,7 @@ void Roaming_Update(void)
             
         case ROAMING_TURN_RIGHT:
             // 右转状态
-            drive_user_defined(400, -400);
+            drive_user_defined(ROAMING_TURN_SPEED, -ROAMING_TURN_SPEED);
             
             if(elapsed_time >= Roaming_TurnDuration)
             {
@@ -271,11 +306,11 @@ void Roaming_Update(void)
         case ROAMING_TURN_BOTH:
             if(Roaming_BothTurnDir == ROAMING_TURN_DIR_LEFT)
             {
-                drive_user_defined(-400, 400);
+                drive_user_defined(-ROAMING_TURN_SPEED, ROAMING_TURN_SPEED);
             }
             else
             {
-                drive_user_defined(400, -400);
+                drive_user_defined(ROAMING_TURN_SPEED, -ROAMING_TURN_SPEED);
             }
 
             if(elapsed_time >= Roaming_TurnDuration)
@@ -285,7 +320,24 @@ void Roaming_Update(void)
                 Roaming_StartTime = current_time;
             }
             break;
-            
+
+        case ROAMING_REAR_EDGE_STOP:
+            if(!MOTOR_IsBraking() && elapsed_time >= ROAMING_EDGE_STOP_TIME)
+            {
+                Roaming_Stage = ROAMING_REAR_ESCAPE;
+                Roaming_StartTime = current_time;
+            }
+            break;
+
+        case ROAMING_REAR_ESCAPE:
+            drive_user_defined(ROAMING_REAR_ESCAPE_SPEED, ROAMING_REAR_ESCAPE_SPEED);
+            if(elapsed_time >= ROAMING_REAR_ESCAPE_TIME)
+            {
+                Roaming_Stage = ROAMING_FORWARD;
+                Roaming_StartTime = current_time;
+            }
+            break;
+
         case ROAMING_DONE:
             // 完成状态（掉落擂台）
             MOTOR_StopAll();

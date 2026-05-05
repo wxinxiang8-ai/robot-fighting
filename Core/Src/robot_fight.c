@@ -18,6 +18,31 @@ static uint8_t Fight_ShadeCount = 0;                 // 灰度掉台确认计数
 static bool Fight_DownFlag = false;                  // 掉台标志（通知总控切BACKUP）
 static EnemyDir Fight_TrackDir = DIR_NONE;           // 侧后追踪当前方向
 
+static EnemyDir Fight_GetLockedTrackDir(void)
+{
+    if(Fight_TrackDir == DIR_LEFT || Fight_TrackDir == DIR_RIGHT)
+    {
+        return Fight_TrackDir;
+    }
+    if(Fight_StableDir == DIR_LEFT || Fight_StableDir == DIR_BACK_LEFT)
+    {
+        return DIR_LEFT;
+    }
+    if(Fight_StableDir == DIR_RIGHT || Fight_StableDir == DIR_BACK_RIGHT || Fight_StableDir == DIR_BACK)
+    {
+        return DIR_RIGHT;
+    }
+    if(Fight_PrevRawDir == DIR_LEFT || Fight_PrevRawDir == DIR_BACK_LEFT)
+    {
+        return DIR_LEFT;
+    }
+    if(Fight_PrevRawDir == DIR_RIGHT || Fight_PrevRawDir == DIR_BACK_RIGHT || Fight_PrevRawDir == DIR_BACK)
+    {
+        return DIR_RIGHT;
+    }
+    return DIR_LEFT;
+}
+
 /*======传感器读取======*/
 
 /**
@@ -27,25 +52,37 @@ static EnemyDir Fight_TrackDir = DIR_NONE;           // 侧后追踪当前方向
  */
 EnemyDir Fight_GetEnemyDir(void)
 {
-    /*读取八路光电传感器*/
-    uint8_t nw          = (HAL_GPIO_ReadPin(FIGHT_IR_NW_PORT,          FIGHT_IR_NW_PIN)          == FIGHT_IR_TRIGGERED);
-    uint8_t ne          = (HAL_GPIO_ReadPin(FIGHT_IR_NE_PORT,          FIGHT_IR_NE_PIN)          == FIGHT_IR_TRIGGERED);
-    uint8_t l           = (HAL_GPIO_ReadPin(FIGHT_IR_L_PORT,           FIGHT_IR_L_PIN)           != FIGHT_IR_TRIGGERED);
-    uint8_t r           = (HAL_GPIO_ReadPin(FIGHT_IR_R_PORT,           FIGHT_IR_R_PIN)           != FIGHT_IR_TRIGGERED);
-    uint8_t sw          = (HAL_GPIO_ReadPin(FIGHT_IR_SW_PORT,          FIGHT_IR_SW_PIN)          == FIGHT_IR_TRIGGERED);
-    uint8_t se          = (HAL_GPIO_ReadPin(FIGHT_IR_SE_PORT,          FIGHT_IR_SE_PIN)          == FIGHT_IR_TRIGGERED);
-    uint8_t front_left  = (HAL_GPIO_ReadPin(FIGHT_IR_FRONT_LEFT_PORT,  FIGHT_IR_FRONT_LEFT_PIN)  == FIGHT_IR_TRIGGERED);
-    uint8_t front_right = (HAL_GPIO_ReadPin(FIGHT_IR_FRONT_RIGHT_PORT, FIGHT_IR_FRONT_RIGHT_PIN) == FIGHT_IR_TRIGGERED);
-    uint8_t back        = (HAL_GPIO_ReadPin(FIGHT_IR_BACK_PORT,        FIGHT_IR_BACK_PIN)        == FIGHT_IR_TRIGGERED);
+    uint8_t nw;
+    uint8_t ne;
+    uint8_t l;
+    uint8_t r;
+    uint8_t sw;
+    uint8_t se;
+    uint8_t front_left;
+    uint8_t front_right;
+    uint8_t back;
+
+    Enmy_Sensor_Detect();
+
+    nw          = (Obs_Data.IR3  == OBS_BLOCKED_STATE);
+    ne          = (Obs_Data.IR5  == OBS_BLOCKED_STATE);
+    l           = (Obs_Data.IR10 == OBS_BLOCKED_STATE);
+    r           = (Obs_Data.IR6  == OBS_BLOCKED_STATE);
+    sw          = (Obs_Data.IR9  == OBS_BLOCKED_STATE);
+    se          = (Obs_Data.IR7  == OBS_BLOCKED_STATE);
+    front_left  = 0;
+    front_right = (Obs_Data.IR11 == OBS_BLOCKED_STATE);
+    back        = (Obs_Data.IR8  == OBS_BLOCKED_STATE);
 
     /*判断敌人方向*/
-    if(front_left && front_right) return DIR_FRONT;
-    if(front_left) return DIR_FRONT_LEFT;
-    if(front_right) return DIR_FRONT_RIGHT;
+    if(front_left || front_right) return DIR_FRONT;
+    if(nw && ne) return DIR_FRONT;
     if(nw) return DIR_FRONT_LEFT;
     if(ne) return DIR_FRONT_RIGHT;
+    if(l && r) return Fight_GetLockedTrackDir();
     if(l)  return DIR_LEFT;
     if(r)  return DIR_RIGHT;
+    if(sw && se) return DIR_BACK;
     if(sw) return DIR_BACK_LEFT;
     if(se) return DIR_BACK_RIGHT;
     if(back) return DIR_BACK;
@@ -59,11 +96,11 @@ EnemyDir Fight_GetEnemyDir(void)
  */
 static bool Fight_EdgeDetected(void)
 {
-    return (Obs_Data.IR1 == SET || Obs_Data.IR2 == SET);
+    return (Obs_Data.IR1 == OBS_EDGE_TRIGGERED_STATE || Obs_Data.IR2 == OBS_EDGE_TRIGGERED_STATE);
 }
 
 /**
- * @description: 检测是否掉台（V0/V1 任一超阈值，连续确认后触发）
+ * @description: 检测是否掉台（V0/V1 两路同时超阈值，连续确认后触发）
  * @param void
  * @return bool
  */
@@ -71,7 +108,7 @@ static bool detect_shade(void)
 {
     site_detect_shade();
 
-    if((voltage_v0 > 2.8f && voltage_v0 < 3.0f) ||
+    if((voltage_v0 > 2.8f && voltage_v0 < 3.0f) &&
        (voltage_v1 > 2.8f && voltage_v1 < 3.0f))
     {
         if(Fight_ShadeCount < FIGHT_SHADE_CONFIRM_COUNT)
@@ -135,18 +172,29 @@ void Fight_Init(void)
     Fight_TrackDir = DIR_NONE;
 }
 
+void Fight_InitWithDir(EnemyDir dir)
+{
+    Fight_Init();
+    Fight_PrevRawDir = dir;
+    Fight_StableDir = dir;
+}
+
 void Fight_Update(void)
 {
     uint32_t now = HAL_GetTick();
     uint32_t elapsed = now - Fight_StartTime;
-    EnemyDir raw_dir = Fight_GetEnemyDir();
+    EnemyDir raw_dir;
+    EnemyDir dir;
+    char vision_type;
+
+    raw_dir = Fight_GetEnemyDir();
     if(raw_dir == Fight_PrevRawDir)
     {
         Fight_StableDir = raw_dir;
     }
     Fight_PrevRawDir = raw_dir;
-    EnemyDir dir = Fight_StableDir;
-    char vision_type = Fight_GetStableVisionType();
+    dir = Fight_StableDir;
+    vision_type = Fight_GetStableVisionType();
 
     /*======掉台安全======*/
     if(detect_shade())
@@ -211,13 +259,13 @@ void Fight_Update(void)
                         Motor_Ramp_Update();
                         break;
                     case DIR_FRONT_LEFT:
-                        Motor_Ramp_SetTarget(-FIGHT_TRACK_FRONT_SPIN_INNER_SPEED,
-                                             FIGHT_TRACK_FRONT_SPIN_OUTER_SPEED);
+                        Motor_Ramp_SetTarget(FIGHT_TRACK_FRONT_ARC_INNER_SPEED,
+                                             FIGHT_TRACK_FRONT_ARC_OUTER_SPEED);
                         Motor_Ramp_Update();
                         break;
                     case DIR_FRONT_RIGHT:
-                        Motor_Ramp_SetTarget(FIGHT_TRACK_FRONT_SPIN_OUTER_SPEED,
-                                             -FIGHT_TRACK_FRONT_SPIN_INNER_SPEED);
+                        Motor_Ramp_SetTarget(FIGHT_TRACK_FRONT_ARC_OUTER_SPEED,
+                                             FIGHT_TRACK_FRONT_ARC_INNER_SPEED);
                         Motor_Ramp_Update();
                         break;
                     case DIR_LEFT:
@@ -273,7 +321,7 @@ void Fight_Update(void)
 
         /*======撤退状态======*/
         case FIGHT_RETREAT:
-            drive_user_defined(-750, -750);
+            drive_user_defined(-FIGHT_RETREAT_SPEED, -FIGHT_RETREAT_SPEED);
             if(elapsed >= FIGHT_RETREAT_TIME)
             {
                 Fight_State = FIGHT_TURN;
@@ -283,7 +331,7 @@ void Fight_Update(void)
 
         /*======边缘恢复掉头状态======*/
         case FIGHT_TURN:
-            drive_Left_S();
+            drive_user_defined(-FIGHT_TURN_SPEED, FIGHT_TURN_SPEED);
             if(elapsed >= FIGHT_TURN_TIME)
             {
                 Fight_State = FIGHT_DONE;
@@ -292,7 +340,7 @@ void Fight_Update(void)
 
         /*======F/B回避先后退======*/
         case FIGHT_FB_TURN:
-            drive_user_defined(-500, -500);
+            drive_user_defined(-FIGHT_FB_RETREAT_SPEED, -FIGHT_FB_RETREAT_SPEED);
             if(elapsed >= FIGHT_FB_RETREAT_TIME)
             {
                 Fight_State = FIGHT_FORWARD;
@@ -302,7 +350,7 @@ void Fight_Update(void)
 
         /*======F/B回避后180°掉头======*/
         case FIGHT_FORWARD:
-            drive_Left_S();
+            drive_user_defined(-FIGHT_TURN_SPEED, FIGHT_TURN_SPEED);
             if(elapsed >= FIGHT_TURN_TIME)
             {
                 Fight_State = FIGHT_FB_ADVANCE;
@@ -312,7 +360,7 @@ void Fight_Update(void)
 
         /*======F/B回避后短前进======*/
         case FIGHT_FB_ADVANCE:
-            drive_For_M();
+            drive_user_defined(FIGHT_FB_ADVANCE_SPEED, FIGHT_FB_ADVANCE_SPEED);
             if(elapsed >= FIGHT_FB_FORWARD_TIME)
             {
                 Fight_State = FIGHT_DONE;

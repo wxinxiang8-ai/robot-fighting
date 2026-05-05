@@ -6,12 +6,10 @@
 #include "motor.h"
 
 static RobotState robot_state;
-static uint8_t roaming_enemy_confirm_count = 0;
 
 static void Robot_Control_EnterRoaming(void)
 {
     Roaming_Init();
-    roaming_enemy_confirm_count = 0;
     robot_state = ROBOT_ROAMING;
 }
 
@@ -28,8 +26,15 @@ void Robot_Control_Init(void)
     robot_state = ROBOT_GO_UP;
 }
 
+RobotState Robot_Control_GetState(void)
+{
+    return robot_state;
+}
+
 void Robot_Control_Update(void)
 {
+    EnemyDir enemy_dir;
+
     switch (robot_state)
     {
         case ROBOT_GO_UP:
@@ -47,21 +52,10 @@ void Robot_Control_Update(void)
                 Robot_Control_EnterBackup();
                 break;
             }
-            if (Fight_GetEnemyDir() != DIR_NONE)
+            enemy_dir = Fight_GetEnemyDir();
+            if (enemy_dir != DIR_NONE)
             {
-                if (roaming_enemy_confirm_count < 3)
-                {
-                    roaming_enemy_confirm_count++;
-                }
-            }
-            else
-            {
-                roaming_enemy_confirm_count = 0;
-            }
-            if (roaming_enemy_confirm_count >= 3)
-            {
-                roaming_enemy_confirm_count = 0;
-                Fight_Init();
+                Fight_InitWithDir(enemy_dir);
                 robot_state = ROBOT_ATTACK;
             }
             break;

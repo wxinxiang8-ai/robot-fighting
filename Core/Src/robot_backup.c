@@ -83,12 +83,12 @@ static int Backup_IsOnStage(void)
 
 static int Backup_IsFrontBoundaryBlocked(void)
 {
-    return (Obs_Data.IR4 == GPIO_PIN_RESET && Obs_Data.IR11 == GPIO_PIN_RESET);
+    return (Obs_Data.IR4 == OBS_BLOCKED_STATE && Obs_Data.IR11 == OBS_BLOCKED_STATE);
 }
 
 static int Backup_IsWallBlocked(void)
 {
-    return (Obs_Data.IR3 == GPIO_PIN_RESET && Obs_Data.IR5 == GPIO_PIN_RESET);
+    return (Obs_Data.IR3 == OBS_BLOCKED_STATE && Obs_Data.IR5 == OBS_BLOCKED_STATE);
 }
 
 static int Backup_IsSearchYawReady(void)
