@@ -85,36 +85,10 @@ void SystemClock_Config(void);
 #if BACKUP_TEST_MODE
 #define BACKUP_TEST_OFF_STAGE_ADC 3800U
 #define BACKUP_TEST_ON_STAGE_ADC  1000U
-#define BACKUP_TEST_D_RETRY_MS    500U
 #endif
 
 #if BACKUP_TEST_MODE
-
-static uint8_t Backup_Test_VisionOnline = 0;
-static uint32_t Backup_Test_LastDCmdTick = 0;
 static char Backup_Test_LastNonXType = 'X';
-
-static void Backup_Test_ServiceVisionCmd(void)
-{
-  uint32_t now = HAL_GetTick();
-
-  if (Backup_Test_VisionOnline)
-  {
-    return;
-  }
-
-  if (vision_target.valid && !Vision_IsTimeout())
-  {
-    Backup_Test_VisionOnline = 1u;
-    return;
-  }
-
-  if ((now - Backup_Test_LastDCmdTick) >= BACKUP_TEST_D_RETRY_MS)
-  {
-    Vision_SendCmd('D');
-    Backup_Test_LastDCmdTick = now;
-  }
-}
 #endif
 
 #if JY62_TEST_MODE
@@ -271,6 +245,10 @@ static const char *Robot_DebugDirName(EnemyDir dir)
       return "FRONT_LEFT";
     case DIR_FRONT_RIGHT:
       return "FRONT_RIGHT";
+    case DIR_FRONT_SLIGHT_LEFT:
+      return "FRONT_SLIGHT_LEFT";
+    case DIR_FRONT_SLIGHT_RIGHT:
+      return "FRONT_SLIGHT_RIGHT";
     case DIR_LEFT:
       return "LEFT";
     case DIR_RIGHT:
@@ -388,11 +366,7 @@ int main(void)
   OLED_ShowString(2, 1, "Raw : ");
   OLED_ShowString(3, 1, "Last: ");
   OLED_ShowString(4, 1, "Stg : ");
-  Backup_Test_VisionOnline = 0u;
   Backup_Test_LastNonXType = 'X';
-  Backup_Test_LastDCmdTick = HAL_GetTick() - BACKUP_TEST_D_RETRY_MS;
-  Vision_SendCmd('D');
-  Backup_Test_LastDCmdTick = HAL_GetTick();
   Shade_TestInject_Enable(BACKUP_TEST_OFF_STAGE_ADC, BACKUP_TEST_OFF_STAGE_ADC);
 #elif IR_OLED_TEST_MODE
   /* IR 测试改为串口输出到上位机 */
@@ -471,7 +445,6 @@ int main(void)
 #elif BACKUP_TEST_MODE
     /* 灰度坏了：测试时始终模拟台下，不做上台检测，成功上台后手动停机 */
     Shade_TestInject_Enable(BACKUP_TEST_OFF_STAGE_ADC, BACKUP_TEST_OFF_STAGE_ADC);
-    Backup_Test_ServiceVisionCmd();
     Backup_Update();
     Motor_PID_Service();
     if (vision_target.type != 'X')

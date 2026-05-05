@@ -8,6 +8,9 @@
 #define FIGHT_ENGAGE_TIMEOUT 3000 //交战时间
 #define FIGHT_ENGAGE_LOST 500 //交战丢失时间
 #define FIGHT_EDGE_STOP_TIME 15 //边缘确认后停顿时间
+#define FIGHT_REAR_EDGE_CONFIRM_COUNT 2
+#define FIGHT_REAR_ESCAPE_TIME 300
+#define FIGHT_REAR_ESCAPE_SPEED 450
 #define FIGHT_RETREAT_TIME 400 //撤退时间
 #define FIGHT_RETREAT_SPEED 700
 #define FIGHT_TURN_TIME   550 //掉头时间(180°)
@@ -18,6 +21,8 @@
 #define FIGHT_FB_ADVANCE_SPEED 350
 #define FIGHT_TRACK_FRONT_ARC_INNER_SPEED 40 //前侧方弧线内侧轮速度
 #define FIGHT_TRACK_FRONT_ARC_OUTER_SPEED 550 //前侧方弧线外侧轮速度
+#define FIGHT_TRACK_FRONT_SMALL_ARC_INNER_SPEED 350 //前方小弧线内侧轮速度
+#define FIGHT_TRACK_FRONT_SMALL_ARC_OUTER_SPEED 550 //前方小弧线外侧轮速度
 #define FIGHT_TRACK_PUSH_SPEED 450 //正前推进速度
 #define FIGHT_TRACK_SPIN_SPEED 500 //补角转向速度
 #define FIGHT_VISION_CONFIRM_COUNT 2 //视觉类型消抖次数
@@ -29,6 +34,8 @@ typedef enum{
     DIR_FRONT, //正前方
     DIR_FRONT_LEFT, //左前方
     DIR_FRONT_RIGHT, //右前方
+    DIR_FRONT_SLIGHT_LEFT, //左前小偏
+    DIR_FRONT_SLIGHT_RIGHT, //右前小偏
     DIR_LEFT, //正左
     DIR_RIGHT, //正右
     DIR_BACK_LEFT, //左后方
@@ -40,6 +47,8 @@ typedef enum{
 typedef enum{
     FIGHT_ENGAGE, //交战
     FIGHT_EDGE_STOP, //边缘确认后短暂停顿
+    FIGHT_REAR_EDGE_STOP,
+    FIGHT_REAR_ESCAPE,
     FIGHT_RETREAT, //边缘后退脱离
     FIGHT_TURN,   //边缘恢复掉头180°
     FIGHT_FB_TURN, //F/B回避先后退

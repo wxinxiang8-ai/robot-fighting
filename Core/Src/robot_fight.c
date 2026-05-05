@@ -11,6 +11,7 @@ static uint32_t Fight_EngageLost = 0;                // 交战态中丢失目标
 static EnemyDir Fight_PrevRawDir = DIR_NONE;         // 上一拍原始敌人方向（用于方向消抖）
 static EnemyDir Fight_StableDir  = DIR_NONE;         // 消抖后的稳定敌人方向
 static uint8_t Fight_EdgeCount = 0;                  // 边缘检测确认计数
+static uint8_t Fight_RearEdgeCount = 0;
 static char Fight_PrevVisionType = 'X';              // 上一拍视觉类型（用于视觉类型消抖）
 static char Fight_StableVisionType = 'X';            // 消抖后的稳定视觉类型
 static uint8_t Fight_VisionTypeCount = 0;            // 视觉类型连续命中计数
@@ -70,12 +71,14 @@ EnemyDir Fight_GetEnemyDir(void)
     r           = (Obs_Data.IR6  == OBS_BLOCKED_STATE);
     sw          = (Obs_Data.IR9  == OBS_BLOCKED_STATE);
     se          = (Obs_Data.IR7  == OBS_BLOCKED_STATE);
-    front_left  = 0;
+    front_left  = (Obs_Data.IR4  == OBS_BLOCKED_STATE);
     front_right = (Obs_Data.IR11 == OBS_BLOCKED_STATE);
     back        = (Obs_Data.IR8  == OBS_BLOCKED_STATE);
 
     /*判断敌人方向*/
-    if(front_left || front_right) return DIR_FRONT;
+    if(front_left && front_right) return DIR_FRONT;
+    if(front_left) return DIR_FRONT_SLIGHT_LEFT;
+    if(front_right) return DIR_FRONT_SLIGHT_RIGHT;
     if(nw && ne) return DIR_FRONT;
     if(nw) return DIR_FRONT_LEFT;
     if(ne) return DIR_FRONT_RIGHT;
@@ -99,11 +102,11 @@ static bool Fight_EdgeDetected(void)
     return (Obs_Data.IR1 == OBS_EDGE_TRIGGERED_STATE || Obs_Data.IR2 == OBS_EDGE_TRIGGERED_STATE);
 }
 
-/**
- * @description: 检测是否掉台（V0/V1 两路同时超阈值，连续确认后触发）
- * @param void
- * @return bool
- */
+static bool Fight_RearEdgeDetected(void)
+{
+    return (Obs_Data.IR12 == OBS_EDGE_TRIGGERED_STATE || Obs_Data.IR13 == OBS_EDGE_TRIGGERED_STATE);
+}
+
 static bool detect_shade(void)
 {
     site_detect_shade();
@@ -164,6 +167,7 @@ void Fight_Init(void)
     Fight_PrevRawDir = DIR_NONE;
     Fight_StableDir = DIR_NONE;
     Fight_EdgeCount = 0;
+    Fight_RearEdgeCount = 0;
     Fight_PrevVisionType = 'X';
     Fight_StableVisionType = 'X';
     Fight_VisionTypeCount = 0;
@@ -187,6 +191,7 @@ void Fight_Update(void)
     EnemyDir dir;
     char vision_type;
 
+    Edge_Sensor_Detect();
     raw_dir = Fight_GetEnemyDir();
     if(raw_dir == Fight_PrevRawDir)
     {
@@ -216,6 +221,7 @@ void Fight_Update(void)
             {
                 MOTOR_BrakeAll();
                 Fight_ShadeCount = 0;
+                Fight_RearEdgeCount = 0;
                 Fight_State = FIGHT_EDGE_STOP;
                 Fight_StartTime = now;
                 Fight_EdgeCount = 0;
@@ -225,6 +231,34 @@ void Fight_Update(void)
         else
         {
             Fight_EdgeCount = 0;
+        }
+    }
+
+    if(Fight_State != FIGHT_EDGE_STOP &&
+       Fight_State != FIGHT_REAR_EDGE_STOP &&
+       Fight_State != FIGHT_REAR_ESCAPE &&
+       Fight_State != FIGHT_DONE)
+    {
+        if(!Fight_EdgeDetected() && Fight_RearEdgeDetected())
+        {
+            if(Fight_RearEdgeCount < FIGHT_REAR_EDGE_CONFIRM_COUNT)
+            {
+                Fight_RearEdgeCount++;
+            }
+            if(Fight_RearEdgeCount >= FIGHT_REAR_EDGE_CONFIRM_COUNT)
+            {
+                MOTOR_BrakeAll();
+                Fight_ShadeCount = 0;
+                Fight_EdgeCount = 0;
+                Fight_RearEdgeCount = 0;
+                Fight_State = FIGHT_REAR_EDGE_STOP;
+                Fight_StartTime = now;
+                return;
+            }
+        }
+        else
+        {
+            Fight_RearEdgeCount = 0;
         }
     }
 
@@ -238,7 +272,8 @@ void Fight_Update(void)
                 Fight_EngageLost = 0;
 
                 /*正面接触后重置交战时间*/
-                if(dir == DIR_FRONT || dir == DIR_FRONT_LEFT || dir == DIR_FRONT_RIGHT)
+                if(dir == DIR_FRONT || dir == DIR_FRONT_SLIGHT_LEFT || dir == DIR_FRONT_SLIGHT_RIGHT ||
+                   dir == DIR_FRONT_LEFT || dir == DIR_FRONT_RIGHT)
                 {
                     Fight_StartTime = now;
                 }
@@ -256,6 +291,16 @@ void Fight_Update(void)
                 {
                     case DIR_FRONT:
                         Motor_Ramp_SetTarget(FIGHT_TRACK_PUSH_SPEED, FIGHT_TRACK_PUSH_SPEED);
+                        Motor_Ramp_Update();
+                        break;
+                    case DIR_FRONT_SLIGHT_LEFT:
+                        Motor_Ramp_SetTarget(FIGHT_TRACK_FRONT_SMALL_ARC_INNER_SPEED,
+                                             FIGHT_TRACK_FRONT_SMALL_ARC_OUTER_SPEED);
+                        Motor_Ramp_Update();
+                        break;
+                    case DIR_FRONT_SLIGHT_RIGHT:
+                        Motor_Ramp_SetTarget(FIGHT_TRACK_FRONT_SMALL_ARC_OUTER_SPEED,
+                                             FIGHT_TRACK_FRONT_SMALL_ARC_INNER_SPEED);
                         Motor_Ramp_Update();
                         break;
                     case DIR_FRONT_LEFT:
@@ -319,6 +364,22 @@ void Fight_Update(void)
             }
             break;
 
+        case FIGHT_REAR_EDGE_STOP:
+            if(!MOTOR_IsBraking() && elapsed >= FIGHT_EDGE_STOP_TIME)
+            {
+                Fight_State = FIGHT_REAR_ESCAPE;
+                Fight_StartTime = now;
+            }
+            break;
+
+        case FIGHT_REAR_ESCAPE:
+            drive_user_defined(FIGHT_REAR_ESCAPE_SPEED, FIGHT_REAR_ESCAPE_SPEED);
+            if(elapsed >= FIGHT_REAR_ESCAPE_TIME)
+            {
+                Fight_State = FIGHT_DONE;
+            }
+            break;
+
         /*======撤退状态======*/
         case FIGHT_RETREAT:
             drive_user_defined(-FIGHT_RETREAT_SPEED, -FIGHT_RETREAT_SPEED);
@@ -369,7 +430,8 @@ void Fight_Update(void)
 
         /*======侧后向追踪：直接原地补角，直到前扇区命中======*/
         case FIGHT_TRACK_SPIN:
-            if(dir == DIR_FRONT || dir == DIR_FRONT_LEFT || dir == DIR_FRONT_RIGHT)
+            if(dir == DIR_FRONT || dir == DIR_FRONT_SLIGHT_LEFT || dir == DIR_FRONT_SLIGHT_RIGHT ||
+                   dir == DIR_FRONT_LEFT || dir == DIR_FRONT_RIGHT)
             {
                 Fight_TrackDir = DIR_NONE;
                 Fight_EngageLost = 0;
