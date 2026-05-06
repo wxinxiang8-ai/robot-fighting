@@ -21,6 +21,9 @@ static EnemyDir Fight_TrackDir = DIR_NONE;           // 侧后追踪当前方向
 static EnemyDir Fight_FrontArcHoldDir = DIR_NONE;
 static uint32_t Fight_FrontArcHoldStart = 0;
 static uint8_t Fight_FrontConfirmCount = 0;
+static EnemyDir Fight_LastFrontArcDir = DIR_NONE;
+static uint32_t Fight_LastFrontArcTime = 0;
+static EnemyDir Fight_EdgeEscapeArcDir = DIR_NONE;
 
 static EnemyDir Fight_GetLockedTrackDir(void)
 {
@@ -56,6 +59,25 @@ static bool Fight_IsFrontArcHoldActive(uint32_t now)
 {
     return (Fight_FrontArcHoldDir != DIR_NONE &&
             (now - Fight_FrontArcHoldStart) < FIGHT_FRONT_ARC_HOLD_MS);
+}
+
+static void Fight_UpdateLastFrontArcDir(uint32_t now, EnemyDir dir)
+{
+    if(Fight_IsFrontArcDir(dir))
+    {
+        Fight_LastFrontArcDir = dir;
+        Fight_LastFrontArcTime = now;
+    }
+}
+
+static EnemyDir Fight_GetEdgeEscapeArcDir(uint32_t now)
+{
+    if(Fight_LastFrontArcDir != DIR_NONE &&
+       (now - Fight_LastFrontArcTime) <= FIGHT_EDGE_ARC_MEMORY_MS)
+    {
+        return Fight_LastFrontArcDir;
+    }
+    return DIR_NONE;
 }
 
 static EnemyDir Fight_ApplyFrontArcHold(uint32_t now, EnemyDir dir)
@@ -236,6 +258,9 @@ void Fight_Init(void)
     Fight_FrontArcHoldDir = DIR_NONE;
     Fight_FrontArcHoldStart = 0;
     Fight_FrontConfirmCount = 0;
+    Fight_LastFrontArcDir = DIR_NONE;
+    Fight_LastFrontArcTime = 0;
+    Fight_EdgeEscapeArcDir = DIR_NONE;
 }
 
 void Fight_InitWithDir(EnemyDir dir)
@@ -243,6 +268,11 @@ void Fight_InitWithDir(EnemyDir dir)
     Fight_Init();
     Fight_PrevRawDir = dir;
     Fight_StableDir = dir;
+    if(Fight_IsFrontArcDir(dir))
+    {
+        Fight_LastFrontArcDir = dir;
+        Fight_LastFrontArcTime = HAL_GetTick();
+    }
 }
 
 void Fight_Update(void)
@@ -262,6 +292,10 @@ void Fight_Update(void)
     Fight_PrevRawDir = raw_dir;
     dir = Fight_ApplyFrontArcHold(now, Fight_StableDir);
     vision_type = Fight_GetStableVisionType();
+    if(Fight_State == FIGHT_ENGAGE)
+    {
+        Fight_UpdateLastFrontArcDir(now, dir);
+    }
 
     /*======掉台安全======*/
     if(detect_shade())
@@ -284,6 +318,7 @@ void Fight_Update(void)
                 MOTOR_BrakeAll();
                 Fight_ShadeCount = 0;
                 Fight_RearEdgeCount = 0;
+                Fight_EdgeEscapeArcDir = Fight_GetEdgeEscapeArcDir(now);
                 Fight_State = FIGHT_EDGE_STOP;
                 Fight_StartTime = now;
                 Fight_EdgeCount = 0;
@@ -454,9 +489,17 @@ void Fight_Update(void)
 
         /*======边缘恢复掉头状态======*/
         case FIGHT_TURN:
-            drive_user_defined(-FIGHT_TURN_SPEED, FIGHT_TURN_SPEED);
-            if(elapsed >= FIGHT_TURN_TIME)
+            if(Fight_EdgeEscapeArcDir == DIR_FRONT_LEFT)
             {
+                drive_user_defined(FIGHT_TURN_SPEED, -FIGHT_TURN_SPEED);
+            }
+            else
+            {
+                drive_user_defined(-FIGHT_TURN_SPEED, FIGHT_TURN_SPEED);
+            }
+            if(elapsed >= ((Fight_EdgeEscapeArcDir == DIR_NONE) ? FIGHT_TURN_TIME : FIGHT_EDGE_ARC_TURN_TIME))
+            {
+                Fight_EdgeEscapeArcDir = DIR_NONE;
                 Fight_State = FIGHT_DONE;
             }
             break;
