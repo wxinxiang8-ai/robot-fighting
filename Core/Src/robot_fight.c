@@ -18,6 +18,9 @@ static uint8_t Fight_VisionTypeCount = 0;            // 视觉类型连续命中
 static uint8_t Fight_ShadeCount = 0;                 // 灰度掉台确认计数
 static bool Fight_DownFlag = false;                  // 掉台标志（通知总控切BACKUP）
 static EnemyDir Fight_TrackDir = DIR_NONE;           // 侧后追踪当前方向
+static EnemyDir Fight_FrontArcHoldDir = DIR_NONE;
+static uint32_t Fight_FrontArcHoldStart = 0;
+static uint8_t Fight_FrontConfirmCount = 0;
 
 static EnemyDir Fight_GetLockedTrackDir(void)
 {
@@ -42,6 +45,62 @@ static EnemyDir Fight_GetLockedTrackDir(void)
         return DIR_RIGHT;
     }
     return DIR_LEFT;
+}
+
+static bool Fight_IsFrontArcDir(EnemyDir dir)
+{
+    return (dir == DIR_FRONT_LEFT || dir == DIR_FRONT_RIGHT);
+}
+
+static bool Fight_IsFrontArcHoldActive(uint32_t now)
+{
+    return (Fight_FrontArcHoldDir != DIR_NONE &&
+            (now - Fight_FrontArcHoldStart) < FIGHT_FRONT_ARC_HOLD_MS);
+}
+
+static EnemyDir Fight_ApplyFrontArcHold(uint32_t now, EnemyDir dir)
+{
+    if(Fight_IsFrontArcDir(dir))
+    {
+        Fight_FrontArcHoldDir = dir;
+        Fight_FrontArcHoldStart = now;
+        Fight_FrontConfirmCount = 0;
+        return dir;
+    }
+
+    if(Fight_IsFrontArcHoldActive(now))
+    {
+        if(dir == DIR_FRONT)
+        {
+            if(Fight_FrontConfirmCount < FIGHT_FRONT_CONFIRM_COUNT)
+            {
+                Fight_FrontConfirmCount++;
+            }
+            if(Fight_FrontConfirmCount < FIGHT_FRONT_CONFIRM_COUNT)
+            {
+                return Fight_FrontArcHoldDir;
+            }
+            Fight_FrontArcHoldDir = DIR_NONE;
+            Fight_FrontConfirmCount = 0;
+            return dir;
+        }
+        else if(dir == DIR_NONE)
+        {
+            Fight_FrontConfirmCount = 0;
+            return Fight_FrontArcHoldDir;
+        }
+    }
+    else
+    {
+        Fight_FrontArcHoldDir = DIR_NONE;
+    }
+
+    if(dir != DIR_FRONT && dir != DIR_FRONT_SLIGHT_LEFT && dir != DIR_FRONT_SLIGHT_RIGHT)
+    {
+        Fight_FrontArcHoldDir = DIR_NONE;
+    }
+    Fight_FrontConfirmCount = 0;
+    return dir;
 }
 
 /*======传感器读取======*/
@@ -104,7 +163,7 @@ static bool Fight_EdgeDetected(void)
 
 static bool Fight_RearEdgeDetected(void)
 {
-    return (Obs_Data.IR12 == OBS_EDGE_TRIGGERED_STATE || Obs_Data.IR13 == OBS_EDGE_TRIGGERED_STATE);
+    return (Obs_Data.IR12 != OBS_BLOCKED_STATE && Obs_Data.IR13 != OBS_BLOCKED_STATE);
 }
 
 static bool detect_shade(void)
@@ -174,6 +233,9 @@ void Fight_Init(void)
     Fight_ShadeCount = 0;
     Fight_DownFlag = false;
     Fight_TrackDir = DIR_NONE;
+    Fight_FrontArcHoldDir = DIR_NONE;
+    Fight_FrontArcHoldStart = 0;
+    Fight_FrontConfirmCount = 0;
 }
 
 void Fight_InitWithDir(EnemyDir dir)
@@ -198,7 +260,7 @@ void Fight_Update(void)
         Fight_StableDir = raw_dir;
     }
     Fight_PrevRawDir = raw_dir;
-    dir = Fight_StableDir;
+    dir = Fight_ApplyFrontArcHold(now, Fight_StableDir);
     vision_type = Fight_GetStableVisionType();
 
     /*======掉台安全======*/

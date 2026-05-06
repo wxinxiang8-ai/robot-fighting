@@ -32,7 +32,7 @@ static uint8_t Roaming_RearEdgeCount = 0;
 
 static int detect_rear_edge(void)
 {
-    return 0;
+    return (Obs_Data.IR12 != OBS_BLOCKED_STATE && Obs_Data.IR13 != OBS_BLOCKED_STATE);
 }
 
 static RoamingBackReason get_front_edge_reason(void)

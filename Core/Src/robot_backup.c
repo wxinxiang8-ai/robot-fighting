@@ -242,7 +242,7 @@ void Backup_Update(void)
             break;
 
         case BACKUP_TURN_180:
-            drive_Left_S();
+            drive_Left_M();
             if(Backup_Turn180Ready())
             {
                 Backup_SwitchStage(BACKUP_WALL_RUSH_FORWARD, current_time);

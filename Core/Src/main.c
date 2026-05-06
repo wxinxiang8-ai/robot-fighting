@@ -39,7 +39,6 @@
 #include "robot_roaming.h"
 #include "robot_backup.h"
 #include "robot_control.h"
-#include "robot_fight.h"
 #include "vision_parser.h"
 #include "jy62.h"
 #include <stdio.h>
@@ -59,7 +58,6 @@
 #define VISION_OLED_TEST_MODE  0
 #define JY62_TEST_MODE         0
 #define PID_DEBUG_MODE         0
-#define STATE_DIR_DEBUG_PRINT_MS 1000U
 
 /* USER CODE END PD */
 
@@ -215,81 +213,6 @@ static void PID_Debug_Update(void)
   }
 }
 #endif
-
-static const char *Robot_DebugStateName(RobotState state)
-{
-  switch (state)
-  {
-    case ROBOT_GO_UP:
-      return "GO_UP";
-    case ROBOT_ROAMING:
-      return "ROAMING";
-    case ROBOT_ATTACK:
-      return "ATTACK";
-    case ROBOT_BACKUP:
-      return "BACKUP";
-    default:
-      return "UNKNOWN";
-  }
-}
-
-static const char *Robot_DebugDirName(EnemyDir dir)
-{
-  switch (dir)
-  {
-    case DIR_NONE:
-      return "NONE";
-    case DIR_FRONT:
-      return "FRONT";
-    case DIR_FRONT_LEFT:
-      return "FRONT_LEFT";
-    case DIR_FRONT_RIGHT:
-      return "FRONT_RIGHT";
-    case DIR_FRONT_SLIGHT_LEFT:
-      return "FRONT_SLIGHT_LEFT";
-    case DIR_FRONT_SLIGHT_RIGHT:
-      return "FRONT_SLIGHT_RIGHT";
-    case DIR_LEFT:
-      return "LEFT";
-    case DIR_RIGHT:
-      return "RIGHT";
-    case DIR_BACK_LEFT:
-      return "BACK_LEFT";
-    case DIR_BACK_RIGHT:
-      return "BACK_RIGHT";
-    case DIR_BACK:
-      return "BACK";
-    default:
-      return "UNKNOWN";
-  }
-}
-
-static void Robot_DebugPrintStateDir(void)
-{
-  static uint32_t debug_last_print = 0;
-  uint32_t now = HAL_GetTick();
-
-  if ((now - debug_last_print) < STATE_DIR_DEBUG_PRINT_MS)
-  {
-    return;
-  }
-
-  debug_last_print = now;
-
-  RobotState state = Robot_Control_GetState();
-  EnemyDir dir = Fight_GetEnemyDir();
-  char uart_buf[80] = {0};
-  int len = snprintf(uart_buf, sizeof(uart_buf),
-                     "state:%s(%d),dir:%s(%d)\r\n",
-                     Robot_DebugStateName(state),
-                     (int)state,
-                     Robot_DebugDirName(dir),
-                     (int)dir);
-  if (len > 0 && len < (int)sizeof(uart_buf))
-  {
-    HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf, (uint16_t)len, 100);
-  }
-}
 
 /* USER CODE END 0 */
 
@@ -518,7 +441,6 @@ int main(void)
       Robot_Control_Update();
       Motor_PID_Service();
     }
-    Robot_DebugPrintStateDir();
 #endif
     /* USER CODE END WHILE */
 
