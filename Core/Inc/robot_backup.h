@@ -19,6 +19,8 @@
 #define BACKUP_POST_RUSH_CHECK_TIME_MS  20
 #define BACKUP_ESCAPE_BACK_TIME_MS      300
 #define BACKUP_TURN_TIME_MS             550
+#define BACKUP_FORWARD_SPEED            300
+#define BACKUP_ESCAPE_BACK_SPEED        200
 
 void Backup_Init(void);
 void Backup_Update(void);

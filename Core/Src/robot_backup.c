@@ -192,7 +192,7 @@ void Backup_Update(void)
             break;
 
         case BACKUP_SPIN_FORWARD:
-            drive_For_M();
+            drive_user_defined(BACKUP_FORWARD_SPEED, BACKUP_FORWARD_SPEED);
             if(Backup_TryFinishIfOnStage(current_time))
             {
                 return;
@@ -204,7 +204,7 @@ void Backup_Update(void)
             break;
 
         case BACKUP_PROBE_FORWARD:
-            drive_For_M();
+            drive_user_defined(BACKUP_FORWARD_SPEED, BACKUP_FORWARD_SPEED);
             if(Backup_TryFinishIfOnStage(current_time))
             {
                 return;
@@ -216,13 +216,13 @@ void Backup_Update(void)
             }
             if(elapsed_time >= BACKUP_PROBE_FORWARD_TIME_MS)
             {
-                drive_Back_L();
+                drive_user_defined(-BACKUP_ESCAPE_BACK_SPEED, -BACKUP_ESCAPE_BACK_SPEED);
                 Backup_SwitchStage(BACKUP_ESCAPE_BACK, current_time);
             }
             break;
 
         case BACKUP_WALL_PRESS:
-            drive_For_M();
+            drive_user_defined(BACKUP_FORWARD_SPEED, BACKUP_FORWARD_SPEED);
             if(elapsed_time >= BACKUP_WALL_PRESS_TIME_MS)
             {
                 Backup_SwitchStage(BACKUP_RUSH_BACK, current_time);
@@ -230,7 +230,7 @@ void Backup_Update(void)
             break;
 
         case BACKUP_ESCAPE_BACK:
-            drive_Back_L();
+            drive_user_defined(-BACKUP_ESCAPE_BACK_SPEED, -BACKUP_ESCAPE_BACK_SPEED);
             if(Backup_TryFinishIfOnStage(current_time))
             {
                 return;
@@ -255,7 +255,7 @@ void Backup_Update(void)
             break;
 
         case BACKUP_WALL_RUSH_FORWARD:
-            drive_For_M();
+            drive_user_defined(BACKUP_FORWARD_SPEED, BACKUP_FORWARD_SPEED);
             if(Backup_TryFinishIfOnStage(current_time))
             {
                 return;
@@ -273,11 +273,11 @@ void Backup_Update(void)
             }
             else if(elapsed_time < GOUP_RUSH_STAGE2_TIME)
             {
-                drive_user_defined(-600, -600);
+                drive_user_defined(-550, -550);
             }
             else if(elapsed_time < BACKUP_BACK_TIME_MS)
             {
-                drive_user_defined(-700, -700);
+                drive_user_defined(-600, -600);
             }
             else
             {
