@@ -4,13 +4,19 @@
 #include "shade.h"
 #include "vision_parser.h"
 
+typedef enum {
+    FIGHT_EDGE_SIDE_NONE = 0,
+    FIGHT_EDGE_SIDE_LEFT,
+    FIGHT_EDGE_SIDE_RIGHT,
+    FIGHT_EDGE_SIDE_BOTH
+} FightEdgeSide;
+
 static FightState Fight_State = FIGHT_ENGAGE;        // 当前进攻状态机状态
 static uint32_t Fight_StartTime = 0;                 // 当前状态起始时间戳
 static bool Fight_DoneFlag = false;                  // 进攻阶段完成标志（通知总控回漫游）
 static uint32_t Fight_EngageLost = 0;                // 交战态中丢失目标的起始时间
 static EnemyDir Fight_PrevRawDir = DIR_NONE;         // 上一拍原始敌人方向（用于方向消抖）
 static EnemyDir Fight_StableDir  = DIR_NONE;         // 消抖后的稳定敌人方向
-static uint8_t Fight_EdgeCount = 0;                  // 边缘检测确认计数
 static uint8_t Fight_RearEdgeCount = 0;
 static char Fight_PrevVisionType = 'X';              // 上一拍视觉类型（用于视觉类型消抖）
 static char Fight_StableVisionType = 'X';            // 消抖后的稳定视觉类型
@@ -24,6 +30,7 @@ static uint8_t Fight_FrontConfirmCount = 0;
 static EnemyDir Fight_LastFrontArcDir = DIR_NONE;
 static uint32_t Fight_LastFrontArcTime = 0;
 static EnemyDir Fight_EdgeEscapeArcDir = DIR_NONE;
+static FightEdgeSide Fight_EdgeSide = FIGHT_EDGE_SIDE_NONE;
 
 static EnemyDir Fight_GetLockedTrackDir(void)
 {
@@ -78,6 +85,48 @@ static EnemyDir Fight_GetEdgeEscapeArcDir(uint32_t now)
         return Fight_LastFrontArcDir;
     }
     return DIR_NONE;
+}
+
+static FightEdgeSide Fight_GetEdgeSide(void)
+{
+    if(Obs_Data.IR1 == OBS_EDGE_TRIGGERED_STATE && Obs_Data.IR2 == OBS_EDGE_TRIGGERED_STATE)
+    {
+        return FIGHT_EDGE_SIDE_BOTH;
+    }
+    if(Obs_Data.IR1 == OBS_EDGE_TRIGGERED_STATE)
+    {
+        return FIGHT_EDGE_SIDE_RIGHT;
+    }
+    if(Obs_Data.IR2 == OBS_EDGE_TRIGGERED_STATE)
+    {
+        return FIGHT_EDGE_SIDE_LEFT;
+    }
+    return FIGHT_EDGE_SIDE_NONE;
+}
+
+static void Fight_DriveEdgeRetreat(void)
+{
+    if(Fight_EdgeSide == FIGHT_EDGE_SIDE_LEFT ||
+       (Fight_EdgeSide == FIGHT_EDGE_SIDE_BOTH && Fight_EdgeEscapeArcDir == DIR_FRONT_LEFT))
+    {
+        drive_user_defined(-FIGHT_EDGE_ARC_BACK_WEAK_SPEED, -FIGHT_EDGE_ARC_BACK_STRONG_SPEED);
+    }
+    else if(Fight_EdgeSide == FIGHT_EDGE_SIDE_RIGHT ||
+            (Fight_EdgeSide == FIGHT_EDGE_SIDE_BOTH && Fight_EdgeEscapeArcDir == DIR_FRONT_RIGHT))
+    {
+        drive_user_defined(-FIGHT_EDGE_ARC_BACK_STRONG_SPEED, -FIGHT_EDGE_ARC_BACK_WEAK_SPEED);
+    }
+    else
+    {
+        drive_user_defined(-FIGHT_RETREAT_SPEED, -FIGHT_RETREAT_SPEED);
+    }
+}
+
+static bool Fight_ShouldTurnRight(void)
+{
+    return (Fight_EdgeSide == FIGHT_EDGE_SIDE_LEFT ||
+            (Fight_EdgeSide == FIGHT_EDGE_SIDE_BOTH && Fight_EdgeEscapeArcDir == DIR_FRONT_LEFT) ||
+            (Fight_EdgeSide == FIGHT_EDGE_SIDE_NONE && Fight_EdgeEscapeArcDir == DIR_FRONT_LEFT));
 }
 
 static EnemyDir Fight_ApplyFrontArcHold(uint32_t now, EnemyDir dir)
@@ -247,7 +296,6 @@ void Fight_Init(void)
     Fight_EngageLost = 0;
     Fight_PrevRawDir = DIR_NONE;
     Fight_StableDir = DIR_NONE;
-    Fight_EdgeCount = 0;
     Fight_RearEdgeCount = 0;
     Fight_PrevVisionType = 'X';
     Fight_StableVisionType = 'X';
@@ -261,6 +309,7 @@ void Fight_Init(void)
     Fight_LastFrontArcDir = DIR_NONE;
     Fight_LastFrontArcTime = 0;
     Fight_EdgeEscapeArcDir = DIR_NONE;
+    Fight_EdgeSide = FIGHT_EDGE_SIDE_NONE;
 }
 
 void Fight_InitWithDir(EnemyDir dir)
@@ -284,6 +333,22 @@ void Fight_Update(void)
     char vision_type;
 
     Edge_Sensor_Detect();
+    if(Fight_State != FIGHT_EDGE_STOP &&
+       Fight_State != FIGHT_RETREAT &&
+       Fight_State != FIGHT_TURN &&
+       Fight_State != FIGHT_DONE &&
+       Fight_EdgeDetected())
+    {
+        MOTOR_BrakeAll();
+        Fight_ShadeCount = 0;
+        Fight_RearEdgeCount = 0;
+        Fight_EdgeEscapeArcDir = Fight_GetEdgeEscapeArcDir(now);
+        Fight_EdgeSide = Fight_GetEdgeSide();
+        Fight_State = FIGHT_EDGE_STOP;
+        Fight_StartTime = now;
+        return;
+    }
+
     raw_dir = Fight_GetEnemyDir();
     if(raw_dir == Fight_PrevRawDir)
     {
@@ -305,32 +370,6 @@ void Fight_Update(void)
         return;
     }
 
-    /*======边缘安全：交战/侧后追踪中都做确认，确认后先停顿再撤退======*/
-    if(Fight_State == FIGHT_ENGAGE || Fight_State == FIGHT_TRACK_SPIN ||
-       Fight_State == FIGHT_FORWARD)
-    {
-        if(Fight_EdgeDetected())
-        {
-            uint8_t edge_confirm_needed = (Fight_State == FIGHT_ENGAGE) ? 1 : 2;
-            Fight_EdgeCount++;
-            if(Fight_EdgeCount >= edge_confirm_needed)
-            {
-                MOTOR_BrakeAll();
-                Fight_ShadeCount = 0;
-                Fight_RearEdgeCount = 0;
-                Fight_EdgeEscapeArcDir = Fight_GetEdgeEscapeArcDir(now);
-                Fight_State = FIGHT_EDGE_STOP;
-                Fight_StartTime = now;
-                Fight_EdgeCount = 0;
-                return;
-            }
-        }
-        else
-        {
-            Fight_EdgeCount = 0;
-        }
-    }
-
     if(Fight_State != FIGHT_EDGE_STOP &&
        Fight_State != FIGHT_REAR_EDGE_STOP &&
        Fight_State != FIGHT_REAR_ESCAPE &&
@@ -346,7 +385,6 @@ void Fight_Update(void)
             {
                 MOTOR_BrakeAll();
                 Fight_ShadeCount = 0;
-                Fight_EdgeCount = 0;
                 Fight_RearEdgeCount = 0;
                 Fight_State = FIGHT_REAR_EDGE_STOP;
                 Fight_StartTime = now;
@@ -479,8 +517,8 @@ void Fight_Update(void)
 
         /*======撤退状态======*/
         case FIGHT_RETREAT:
-            drive_user_defined(-FIGHT_RETREAT_SPEED, -FIGHT_RETREAT_SPEED);
-            if(elapsed >= FIGHT_RETREAT_TIME)
+            Fight_DriveEdgeRetreat();
+            if(elapsed >= ((Fight_EdgeSide == FIGHT_EDGE_SIDE_NONE) ? FIGHT_RETREAT_TIME : FIGHT_EDGE_ARC_BACK_TIME))
             {
                 Fight_State = FIGHT_TURN;
                 Fight_StartTime = now;
@@ -489,7 +527,7 @@ void Fight_Update(void)
 
         /*======边缘恢复掉头状态======*/
         case FIGHT_TURN:
-            if(Fight_EdgeEscapeArcDir == DIR_FRONT_LEFT)
+            if(Fight_ShouldTurnRight())
             {
                 drive_user_defined(FIGHT_TURN_SPEED, -FIGHT_TURN_SPEED);
             }
@@ -497,9 +535,10 @@ void Fight_Update(void)
             {
                 drive_user_defined(-FIGHT_TURN_SPEED, FIGHT_TURN_SPEED);
             }
-            if(elapsed >= ((Fight_EdgeEscapeArcDir == DIR_NONE) ? FIGHT_TURN_TIME : FIGHT_EDGE_ARC_TURN_TIME))
+            if(elapsed >= ((Fight_EdgeSide == FIGHT_EDGE_SIDE_NONE && Fight_EdgeEscapeArcDir == DIR_NONE) ? FIGHT_TURN_TIME : FIGHT_EDGE_ARC_TURN_TIME))
             {
                 Fight_EdgeEscapeArcDir = DIR_NONE;
+                Fight_EdgeSide = FIGHT_EDGE_SIDE_NONE;
                 Fight_State = FIGHT_DONE;
             }
             break;

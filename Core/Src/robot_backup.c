@@ -10,6 +10,7 @@
 #include "shade.h"
 #include "jy62.h"
 
+#define BACKUP_WALL_BLOCK_CONFIRM_COUNT 3u
 
 typedef enum {
     BACKUP_SPIN = 0,
@@ -28,6 +29,7 @@ static BackupStage_t Backup_Stage = BACKUP_SPIN;
 static uint32_t Backup_StartTime = 0;
 static bool Backup_Done = false;
 static uint8_t Backup_OnStageCount = 0;
+static uint8_t Backup_WallBlockedCount = 0;
 static float Backup_TurnTargetYaw = 0.0f;
 
 static const float Backup_SearchYawTargets[] = {0.0f, 90.0f, 180.0f, -90.0f};
@@ -66,6 +68,11 @@ static void Backup_FinishRecovery(uint32_t current_time)
 
 static void Backup_SwitchStage(BackupStage_t next_stage, uint32_t current_time)
 {
+    if(next_stage != BACKUP_PROBE_FORWARD)
+    {
+        Backup_WallBlockedCount = 0;
+    }
+
     Backup_Stage = next_stage;
     Backup_StartTime = current_time;
 }
@@ -89,6 +96,23 @@ static int Backup_IsFrontBoundaryBlocked(void)
 static int Backup_IsWallBlocked(void)
 {
     return (Obs_Data.IR3 == OBS_BLOCKED_STATE && Obs_Data.IR5 == OBS_BLOCKED_STATE);
+}
+
+static int Backup_IsWallBlockedConfirmed(void)
+{
+    if(Backup_IsWallBlocked())
+    {
+        if(Backup_WallBlockedCount < BACKUP_WALL_BLOCK_CONFIRM_COUNT)
+        {
+            Backup_WallBlockedCount++;
+        }
+    }
+    else
+    {
+        Backup_WallBlockedCount = 0;
+    }
+
+    return (Backup_WallBlockedCount >= BACKUP_WALL_BLOCK_CONFIRM_COUNT);
 }
 
 static int Backup_IsSearchYawReady(void)
@@ -156,6 +180,7 @@ void Backup_Init(void)
     Backup_StartTime = HAL_GetTick();
     Backup_Done = false;
     Backup_OnStageCount = 0;
+    Backup_WallBlockedCount = 0;
     Backup_TurnTargetYaw = 0.0f;
 }
 
@@ -204,20 +229,33 @@ void Backup_Update(void)
             break;
 
         case BACKUP_PROBE_FORWARD:
-            drive_user_defined(BACKUP_FORWARD_SPEED, BACKUP_FORWARD_SPEED);
+            if(elapsed_time < BACKUP_PROBE_FORWARD_TIME_MS)
+            {
+                drive_user_defined(BACKUP_FORWARD_SPEED, BACKUP_FORWARD_SPEED);
+            }
+            else
+            {
+                MOTOR_StopAll();
+            }
+
             if(Backup_TryFinishIfOnStage(current_time))
             {
                 return;
             }
-            if(Backup_IsWallBlocked())
-            {
-                Backup_SwitchStage(BACKUP_WALL_PRESS, current_time);
-                break;
-            }
+
             if(elapsed_time >= BACKUP_PROBE_FORWARD_TIME_MS)
             {
-                drive_user_defined(-BACKUP_ESCAPE_BACK_SPEED, -BACKUP_ESCAPE_BACK_SPEED);
-                Backup_SwitchStage(BACKUP_ESCAPE_BACK, current_time);
+                if(Backup_IsWallBlockedConfirmed())
+                {
+                    Backup_SwitchStage(BACKUP_WALL_PRESS, current_time);
+                    break;
+                }
+
+                if(Backup_WallBlockedCount == 0u)
+                {
+                    drive_user_defined(-BACKUP_ESCAPE_BACK_SPEED, -BACKUP_ESCAPE_BACK_SPEED);
+                    Backup_SwitchStage(BACKUP_ESCAPE_BACK, current_time);
+                }
             }
             break;
 
