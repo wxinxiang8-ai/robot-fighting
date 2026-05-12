@@ -34,7 +34,9 @@ static FightEdgeSide Fight_EdgeSide = FIGHT_EDGE_SIDE_NONE;
 
 static EnemyDir Fight_GetLockedTrackDir(void)
 {
-    if(Fight_TrackDir == DIR_LEFT || Fight_TrackDir == DIR_RIGHT)
+    if(Fight_TrackDir == DIR_LEFT || Fight_TrackDir == DIR_RIGHT ||
+       Fight_TrackDir == DIR_BACK_LEFT || Fight_TrackDir == DIR_BACK_RIGHT ||
+       Fight_TrackDir == DIR_BACK)
     {
         return Fight_TrackDir;
     }
@@ -452,7 +454,7 @@ void Fight_Update(void)
                     case DIR_BACK_LEFT:
                         Motor_Ramp_SyncFromCurrent();
                         Fight_State = FIGHT_TRACK_SPIN;
-                        Fight_TrackDir = DIR_LEFT;
+                        Fight_TrackDir = dir;
                         Fight_EngageLost = 0;
                         Fight_StartTime = now;
                         break;
@@ -461,7 +463,7 @@ void Fight_Update(void)
                     case DIR_BACK:
                         Motor_Ramp_SyncFromCurrent();
                         Fight_State = FIGHT_TRACK_SPIN;
-                        Fight_TrackDir = DIR_RIGHT;
+                        Fight_TrackDir = dir;
                         Fight_EngageLost = 0;
                         Fight_StartTime = now;
                         break;
@@ -572,7 +574,7 @@ void Fight_Update(void)
             }
             break;
 
-        /*======侧后向追踪：直接原地补角，直到前扇区命中======*/
+        /*======侧后向追踪：侧方原地补角，后侧方大急转，直到前扇区命中======*/
         case FIGHT_TRACK_SPIN:
             if(dir == DIR_FRONT || dir == DIR_FRONT_SLIGHT_LEFT || dir == DIR_FRONT_SLIGHT_RIGHT ||
                    dir == DIR_FRONT_LEFT || dir == DIR_FRONT_RIGHT)
@@ -587,12 +589,12 @@ void Fight_Update(void)
 
             if(dir == DIR_LEFT || dir == DIR_BACK_LEFT)
             {
-                Fight_TrackDir = DIR_LEFT;
+                Fight_TrackDir = dir;
                 Fight_EngageLost = 0;
             }
             else if(dir == DIR_RIGHT || dir == DIR_BACK_RIGHT || dir == DIR_BACK)
             {
-                Fight_TrackDir = DIR_RIGHT;
+                Fight_TrackDir = dir;
                 Fight_EngageLost = 0;
             }
             else if(dir == DIR_NONE)
@@ -608,7 +610,15 @@ void Fight_Update(void)
                 }
             }
 
-            if(Fight_TrackDir == DIR_LEFT)
+            if(Fight_TrackDir == DIR_BACK_LEFT)
+            {
+                Motor_Ramp_SetTarget(-FIGHT_TRACK_REAR_ARC_BACK_SPEED, FIGHT_TRACK_REAR_ARC_FORWARD_SPEED);
+            }
+            else if(Fight_TrackDir == DIR_BACK_RIGHT || Fight_TrackDir == DIR_BACK)
+            {
+                Motor_Ramp_SetTarget(FIGHT_TRACK_REAR_ARC_FORWARD_SPEED, -FIGHT_TRACK_REAR_ARC_BACK_SPEED);
+            }
+            else if(Fight_TrackDir == DIR_LEFT)
             {
                 Motor_Ramp_SetTarget(-FIGHT_TRACK_SPIN_SPEED, FIGHT_TRACK_SPIN_SPEED);
             }
