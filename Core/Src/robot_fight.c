@@ -97,11 +97,11 @@ static FightEdgeSide Fight_GetEdgeSide(void)
     }
     if(Obs_Data.IR1 == OBS_EDGE_TRIGGERED_STATE)
     {
-        return FIGHT_EDGE_SIDE_RIGHT;
+        return FIGHT_EDGE_SIDE_LEFT;
     }
     if(Obs_Data.IR2 == OBS_EDGE_TRIGGERED_STATE)
     {
-        return FIGHT_EDGE_SIDE_LEFT;
+        return FIGHT_EDGE_SIDE_RIGHT;
     }
     return FIGHT_EDGE_SIDE_NONE;
 }
@@ -111,12 +111,12 @@ static void Fight_DriveEdgeRetreat(void)
     if(Fight_EdgeSide == FIGHT_EDGE_SIDE_LEFT ||
        (Fight_EdgeSide == FIGHT_EDGE_SIDE_BOTH && Fight_EdgeEscapeArcDir == DIR_FRONT_LEFT))
     {
-        drive_user_defined(-FIGHT_EDGE_ARC_BACK_WEAK_SPEED, -FIGHT_EDGE_ARC_BACK_STRONG_SPEED);
+        drive_user_defined(-FIGHT_EDGE_ARC_BACK_STRONG_SPEED, -FIGHT_EDGE_ARC_BACK_WEAK_SPEED);
     }
     else if(Fight_EdgeSide == FIGHT_EDGE_SIDE_RIGHT ||
             (Fight_EdgeSide == FIGHT_EDGE_SIDE_BOTH && Fight_EdgeEscapeArcDir == DIR_FRONT_RIGHT))
     {
-        drive_user_defined(-FIGHT_EDGE_ARC_BACK_STRONG_SPEED, -FIGHT_EDGE_ARC_BACK_WEAK_SPEED);
+        drive_user_defined(-FIGHT_EDGE_ARC_BACK_WEAK_SPEED, -FIGHT_EDGE_ARC_BACK_STRONG_SPEED);
     }
     else
     {
