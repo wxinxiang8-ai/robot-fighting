@@ -24,6 +24,7 @@ static uint8_t Fight_VisionTypeCount = 0;            // 视觉类型连续命中
 static uint8_t Fight_ShadeCount = 0;                 // 灰度掉台确认计数
 static bool Fight_DownFlag = false;                  // 掉台标志（通知总控切BACKUP）
 static EnemyDir Fight_TrackDir = DIR_NONE;           // 侧后追踪当前方向
+static EnemyDir Fight_LastTrackSide = DIR_RIGHT;      // 正后甩头方向
 static EnemyDir Fight_FrontArcHoldDir = DIR_NONE;
 static uint32_t Fight_FrontArcHoldStart = 0;
 static uint8_t Fight_FrontConfirmCount = 0;
@@ -44,19 +45,27 @@ static EnemyDir Fight_GetLockedTrackDir(void)
     {
         return DIR_LEFT;
     }
-    if(Fight_StableDir == DIR_RIGHT || Fight_StableDir == DIR_BACK_RIGHT || Fight_StableDir == DIR_BACK)
+    if(Fight_StableDir == DIR_RIGHT || Fight_StableDir == DIR_BACK_RIGHT)
     {
         return DIR_RIGHT;
+    }
+    if(Fight_StableDir == DIR_BACK)
+    {
+        return Fight_LastTrackSide;
     }
     if(Fight_PrevRawDir == DIR_LEFT || Fight_PrevRawDir == DIR_BACK_LEFT)
     {
         return DIR_LEFT;
     }
-    if(Fight_PrevRawDir == DIR_RIGHT || Fight_PrevRawDir == DIR_BACK_RIGHT || Fight_PrevRawDir == DIR_BACK)
+    if(Fight_PrevRawDir == DIR_RIGHT || Fight_PrevRawDir == DIR_BACK_RIGHT)
     {
         return DIR_RIGHT;
     }
-    return DIR_LEFT;
+    if(Fight_PrevRawDir == DIR_BACK)
+    {
+        return Fight_LastTrackSide;
+    }
+    return Fight_LastTrackSide;
 }
 
 static bool Fight_IsFrontArcDir(EnemyDir dir)
@@ -75,6 +84,7 @@ static void Fight_UpdateLastFrontArcDir(uint32_t now, EnemyDir dir)
     if(Fight_IsFrontArcDir(dir))
     {
         Fight_LastFrontArcDir = dir;
+        Fight_LastTrackSide = (dir == DIR_FRONT_LEFT) ? DIR_LEFT : DIR_RIGHT;
         Fight_LastFrontArcTime = now;
     }
 }
@@ -108,20 +118,7 @@ static FightEdgeSide Fight_GetEdgeSide(void)
 
 static void Fight_DriveEdgeRetreat(void)
 {
-    if(Fight_EdgeSide == FIGHT_EDGE_SIDE_LEFT ||
-       (Fight_EdgeSide == FIGHT_EDGE_SIDE_BOTH && Fight_EdgeEscapeArcDir == DIR_FRONT_LEFT))
-    {
-        drive_user_defined(-FIGHT_EDGE_ARC_BACK_STRONG_SPEED, -FIGHT_EDGE_ARC_BACK_WEAK_SPEED);
-    }
-    else if(Fight_EdgeSide == FIGHT_EDGE_SIDE_RIGHT ||
-            (Fight_EdgeSide == FIGHT_EDGE_SIDE_BOTH && Fight_EdgeEscapeArcDir == DIR_FRONT_RIGHT))
-    {
-        drive_user_defined(-FIGHT_EDGE_ARC_BACK_WEAK_SPEED, -FIGHT_EDGE_ARC_BACK_STRONG_SPEED);
-    }
-    else
-    {
-        drive_user_defined(-FIGHT_RETREAT_SPEED, -FIGHT_RETREAT_SPEED);
-    }
+    drive_user_defined(-FIGHT_RETREAT_SPEED, -FIGHT_RETREAT_SPEED);
 }
 
 static bool Fight_ShouldTurnRight(void)
@@ -305,6 +302,7 @@ void Fight_Init(void)
     Fight_ShadeCount = 0;
     Fight_DownFlag = false;
     Fight_TrackDir = DIR_NONE;
+    Fight_LastTrackSide = DIR_RIGHT;
     Fight_FrontArcHoldDir = DIR_NONE;
     Fight_FrontArcHoldStart = 0;
     Fight_FrontConfirmCount = 0;
@@ -423,7 +421,7 @@ void Fight_Update(void)
                     break;
                 }
 
-                /*IR方向追踪：前扇区走Ramp，侧后方直接进原地旋转*/
+                /*IR方向追踪：前扇区走Ramp，侧后方进入前冲甩头*/
                 switch(dir)
                 {
                     case DIR_FRONT:
@@ -455,15 +453,23 @@ void Fight_Update(void)
                         Motor_Ramp_SyncFromCurrent();
                         Fight_State = FIGHT_TRACK_SPIN;
                         Fight_TrackDir = dir;
+                        Fight_LastTrackSide = DIR_LEFT;
                         Fight_EngageLost = 0;
                         Fight_StartTime = now;
                         break;
                     case DIR_RIGHT:
                     case DIR_BACK_RIGHT:
-                    case DIR_BACK:
                         Motor_Ramp_SyncFromCurrent();
                         Fight_State = FIGHT_TRACK_SPIN;
                         Fight_TrackDir = dir;
+                        Fight_LastTrackSide = DIR_RIGHT;
+                        Fight_EngageLost = 0;
+                        Fight_StartTime = now;
+                        break;
+                    case DIR_BACK:
+                        Motor_Ramp_SyncFromCurrent();
+                        Fight_State = FIGHT_TRACK_SPIN;
+                        Fight_TrackDir = (Fight_LastTrackSide == DIR_LEFT) ? DIR_BACK_LEFT : DIR_BACK_RIGHT;
                         Fight_EngageLost = 0;
                         Fight_StartTime = now;
                         break;
@@ -520,7 +526,7 @@ void Fight_Update(void)
         /*======撤退状态======*/
         case FIGHT_RETREAT:
             Fight_DriveEdgeRetreat();
-            if(elapsed >= ((Fight_EdgeSide == FIGHT_EDGE_SIDE_NONE) ? FIGHT_RETREAT_TIME : FIGHT_EDGE_ARC_BACK_TIME))
+            if(elapsed >= FIGHT_RETREAT_TIME)
             {
                 Fight_State = FIGHT_TURN;
                 Fight_StartTime = now;
@@ -537,7 +543,7 @@ void Fight_Update(void)
             {
                 drive_user_defined(-FIGHT_TURN_SPEED, FIGHT_TURN_SPEED);
             }
-            if(elapsed >= ((Fight_EdgeSide == FIGHT_EDGE_SIDE_NONE && Fight_EdgeEscapeArcDir == DIR_NONE) ? FIGHT_TURN_TIME : FIGHT_EDGE_ARC_TURN_TIME))
+            if(elapsed >= ((Fight_EdgeSide == FIGHT_EDGE_SIDE_NONE && Fight_EdgeEscapeArcDir == DIR_NONE) ? FIGHT_TURN_TIME : FIGHT_EDGE_TURN_TIME))
             {
                 Fight_EdgeEscapeArcDir = DIR_NONE;
                 Fight_EdgeSide = FIGHT_EDGE_SIDE_NONE;
@@ -574,7 +580,7 @@ void Fight_Update(void)
             }
             break;
 
-        /*======侧后向追踪：侧方原地补角，后侧方大急转，直到前扇区命中======*/
+        /*======侧后向追踪：侧后方前冲甩头，直到前扇区命中======*/
         case FIGHT_TRACK_SPIN:
             if(dir == DIR_FRONT || dir == DIR_FRONT_SLIGHT_LEFT || dir == DIR_FRONT_SLIGHT_RIGHT ||
                    dir == DIR_FRONT_LEFT || dir == DIR_FRONT_RIGHT)
@@ -590,11 +596,18 @@ void Fight_Update(void)
             if(dir == DIR_LEFT || dir == DIR_BACK_LEFT)
             {
                 Fight_TrackDir = dir;
+                Fight_LastTrackSide = DIR_LEFT;
                 Fight_EngageLost = 0;
             }
-            else if(dir == DIR_RIGHT || dir == DIR_BACK_RIGHT || dir == DIR_BACK)
+            else if(dir == DIR_RIGHT || dir == DIR_BACK_RIGHT)
             {
                 Fight_TrackDir = dir;
+                Fight_LastTrackSide = DIR_RIGHT;
+                Fight_EngageLost = 0;
+            }
+            else if(dir == DIR_BACK)
+            {
+                Fight_TrackDir = (Fight_LastTrackSide == DIR_LEFT) ? DIR_BACK_LEFT : DIR_BACK_RIGHT;
                 Fight_EngageLost = 0;
             }
             else if(dir == DIR_NONE)
@@ -614,17 +627,17 @@ void Fight_Update(void)
             {
                 Motor_Ramp_SetTarget(-FIGHT_TRACK_REAR_ARC_BACK_SPEED, FIGHT_TRACK_REAR_ARC_FORWARD_SPEED);
             }
-            else if(Fight_TrackDir == DIR_BACK_RIGHT || Fight_TrackDir == DIR_BACK)
+            else if(Fight_TrackDir == DIR_BACK_RIGHT)
             {
                 Motor_Ramp_SetTarget(FIGHT_TRACK_REAR_ARC_FORWARD_SPEED, -FIGHT_TRACK_REAR_ARC_BACK_SPEED);
             }
             else if(Fight_TrackDir == DIR_LEFT)
             {
-                Motor_Ramp_SetTarget(-FIGHT_TRACK_SPIN_SPEED, FIGHT_TRACK_SPIN_SPEED);
+                Motor_Ramp_SetTarget(-FIGHT_TRACK_SIDE_ARC_BACK_SPEED, FIGHT_TRACK_SIDE_ARC_FORWARD_SPEED);
             }
             else
             {
-                Motor_Ramp_SetTarget(FIGHT_TRACK_SPIN_SPEED, -FIGHT_TRACK_SPIN_SPEED);
+                Motor_Ramp_SetTarget(FIGHT_TRACK_SIDE_ARC_FORWARD_SPEED, -FIGHT_TRACK_SIDE_ARC_BACK_SPEED);
             }
             Motor_Ramp_Update();
             break;
