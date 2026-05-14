@@ -118,7 +118,18 @@ static FightEdgeSide Fight_GetEdgeSide(void)
 
 static void Fight_DriveEdgeRetreat(void)
 {
-    drive_user_defined(-FIGHT_RETREAT_SPEED, -FIGHT_RETREAT_SPEED);
+    if(Fight_EdgeSide == FIGHT_EDGE_SIDE_LEFT)
+    {
+        drive_user_defined(-(FIGHT_RETREAT_SPEED - FIGHT_EDGE_RETREAT_DIFF), -FIGHT_RETREAT_SPEED);
+    }
+    else if(Fight_EdgeSide == FIGHT_EDGE_SIDE_RIGHT)
+    {
+        drive_user_defined(-FIGHT_RETREAT_SPEED, -(FIGHT_RETREAT_SPEED - FIGHT_EDGE_RETREAT_DIFF));
+    }
+    else
+    {
+        drive_user_defined(-FIGHT_RETREAT_SPEED, -FIGHT_RETREAT_SPEED);
+    }
 }
 
 static bool Fight_ShouldTurnRight(void)
