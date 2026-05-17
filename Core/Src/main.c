@@ -58,6 +58,7 @@
 #define VISION_OLED_TEST_MODE  0
 #define JY62_TEST_MODE         0
 #define PID_DEBUG_MODE         0
+#define UART_TEST_MODE         0
 
 /* USER CODE END PD */
 
@@ -308,6 +309,9 @@ int main(void)
   ENCODER_ResetAll();
   Motor_PID_Init();
   MOTOR_StopAll();
+#elif UART_TEST_MODE
+  (void)control_last_tick;
+  HAL_UART_Transmit(&huart2, (uint8_t *)"USART2 TEST START\r\n", 19, 100);
 #else
   MOTOR_Init();
   ENCODER_Init();
@@ -431,6 +435,9 @@ int main(void)
 #elif PID_DEBUG_MODE
     PID_Debug_Update();
     HAL_Delay(1);
+#elif UART_TEST_MODE
+    HAL_UART_Transmit(&huart2, (uint8_t *)"USART2 OK\r\n", 11, 100);
+    HAL_Delay(2000);
 #else
     Edge_Sensor_Detect();
     JY62_Update();
