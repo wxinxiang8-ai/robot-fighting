@@ -208,8 +208,15 @@ void Roaming_Update(void)
 
         case ROAMING_BACK:
             // 后退状态
-            drive_user_defined(-ROAMING_BACK_SPEED, -ROAMING_BACK_SPEED);
-            
+            if(elapsed_time < ROAMING_BACK_SOFT_TIME)
+            {
+                drive_user_defined(-ROAMING_BACK_SOFT_SPEED, -ROAMING_BACK_SOFT_SPEED);
+            }
+            else
+            {
+                drive_user_defined(-ROAMING_BACK_SPEED, -ROAMING_BACK_SPEED);
+            }
+
             if(elapsed_time >= ROAMING_BACK_TIME)
             {
                 // 后退完成，根据触发后退时锁存的原因决定转向

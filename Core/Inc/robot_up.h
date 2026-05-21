@@ -37,7 +37,7 @@ typedef enum{
 }GoUpState;
 
 /*======时间参数======*/
-#define GOUP_RUSH_TIME 500
+#define GOUP_RUSH_TIME 1200
 #define GOUP_RUSH_STAGE1_TIME 100
 #define GOUP_RUSH_STAGE2_TIME 400
 #define GOUP_TURN_TIME 350
@@ -46,7 +46,7 @@ typedef enum{
 /*======速度参数======*/
 #define GOUP_RUSH_SPEED_STAGE1 500
 #define GOUP_RUSH_SPEED_STAGE2 600
-#define GOUP_RUSH_SPEED_STAGE3 600
+#define GOUP_RUSH_SPEED_STAGE3 650
 
 /*======函数声明======*/
 void GoUp_Init(void);

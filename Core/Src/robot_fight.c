@@ -21,7 +21,7 @@ static uint8_t Fight_RearEdgeCount = 0;              // 后方安全传感器连
 static char Fight_PrevVisionType = 'X';              // 上一拍视觉类型（用于视觉类型消抖）
 static char Fight_StableVisionType = 'X';            // 消抖后的稳定视觉类型
 static uint8_t Fight_VisionTypeCount = 0;            // 视觉类型连续命中计数
-static uint8_t Fight_ShadeCount = 0;                 // 灰度掉台确认计数，连续命中后才认为已掉台
+static uint32_t Fight_ShadeStartTime = 0;            // 灰度掉台原始条件开始成立的时间
 static bool Fight_DownFlag = false;                  // 掉台标志（通知总控切 BACKUP）
 static EnemyDir Fight_TrackDir = DIR_NONE;           // 侧边/后侧边甩头追踪时锁定的方向
 static EnemyDir Fight_LastTrackSide = DIR_RIGHT;     // 正后方只知道在后面时，沿用最近一次左右甩头侧
@@ -119,17 +119,23 @@ static FightEdgeSide Fight_GetEdgeSide(void)
     return FIGHT_EDGE_SIDE_NONE;
 }
 
-static void Fight_DriveEdgeRetreat(void)
+static void Fight_DriveEdgeRetreat(uint32_t elapsed)
 {
+    if(elapsed < FIGHT_RETREAT_SOFT_TIME)
+    {
+        drive_user_defined(-FIGHT_RETREAT_SOFT_SPEED, -FIGHT_RETREAT_SOFT_SPEED);
+        return;
+    }
+
     if(Fight_EdgeSide == FIGHT_EDGE_SIDE_LEFT)
     {
-        // 左前边缘触发时右轮后退更快，让车尾向右侧带一点弧度退开。
-        drive_user_defined(-(FIGHT_RETREAT_SPEED - FIGHT_EDGE_RETREAT_DIFF), -FIGHT_RETREAT_SPEED);
+        // 左前边缘触发时左轮后退更快，向右后方带一点弧度退开。
+        drive_user_defined(-FIGHT_RETREAT_SPEED, -(FIGHT_RETREAT_SPEED - FIGHT_EDGE_RETREAT_DIFF));
     }
     else if(Fight_EdgeSide == FIGHT_EDGE_SIDE_RIGHT)
     {
-        // 右前边缘触发时左轮后退更快，让车尾向左侧带一点弧度退开。
-        drive_user_defined(-FIGHT_RETREAT_SPEED, -(FIGHT_RETREAT_SPEED - FIGHT_EDGE_RETREAT_DIFF));
+        // 右前边缘触发时右轮后退更快，向左后方带一点弧度退开。
+        drive_user_defined(-(FIGHT_RETREAT_SPEED - FIGHT_EDGE_RETREAT_DIFF), -FIGHT_RETREAT_SPEED);
     }
     else
     {
@@ -218,24 +224,22 @@ static bool Fight_RearEdgeDetected(void)
     return (Obs_Data.IR12 != OBS_BLOCKED_STATE && Obs_Data.IR13 != OBS_BLOCKED_STATE);
 }
 
-static bool detect_shade(void)
+static bool detect_shade(uint32_t now)
 {
     site_detect_shade();
 
     if((voltage_v0 > 2.8f && voltage_v0 < 3.0f) &&
        (voltage_v1 > 2.8f && voltage_v1 < 3.0f))
     {
-        if(Fight_ShadeCount < FIGHT_SHADE_CONFIRM_COUNT)
+        if(Fight_ShadeStartTime == 0)
         {
-            Fight_ShadeCount++;
+            Fight_ShadeStartTime = now;
         }
-    }
-    else
-    {
-        Fight_ShadeCount = 0;
+        return ((now - Fight_ShadeStartTime) >= FIGHT_SHADE_CONFIRM_TIME);
     }
 
-    return (Fight_ShadeCount >= FIGHT_SHADE_CONFIRM_COUNT);
+    Fight_ShadeStartTime = 0;
+    return false;
 }
 
 static char Fight_GetStableVisionType(void)
@@ -283,7 +287,7 @@ void Fight_Init(void)
     Fight_PrevVisionType = 'X';
     Fight_StableVisionType = 'X';
     Fight_VisionTypeCount = 0;
-    Fight_ShadeCount = 0;
+    Fight_ShadeStartTime = 0;
     Fight_DownFlag = false;
     Fight_TrackDir = DIR_NONE;
     Fight_LastTrackSide = DIR_RIGHT;
@@ -324,7 +328,7 @@ void Fight_Update(void)
        Fight_EdgeDetected())
     {
         MOTOR_BrakeAll();
-        Fight_ShadeCount = 0;
+        Fight_ShadeStartTime = 0;
         Fight_RearEdgeCount = 0;
         Fight_EdgeEscapeArcDir = Fight_GetEdgeEscapeArcDir(now);
         Fight_EdgeSide = Fight_GetEdgeSide();
@@ -350,7 +354,7 @@ void Fight_Update(void)
     }
 
     /*======掉台安全======*/
-    if(detect_shade())
+    if(detect_shade(now))
     {
         Fight_DownFlag = true;
         MOTOR_BrakeAll();
@@ -371,7 +375,7 @@ void Fight_Update(void)
             if(Fight_RearEdgeCount >= FIGHT_REAR_EDGE_CONFIRM_COUNT)
             {
                 MOTOR_BrakeAll();
-                Fight_ShadeCount = 0;
+                Fight_ShadeStartTime = 0;
                 Fight_RearEdgeCount = 0;
                 Fight_State = FIGHT_REAR_EDGE_STOP;
                 Fight_StartTime = now;
@@ -560,7 +564,7 @@ void Fight_Update(void)
 
         /*======撤退状态======*/
         case FIGHT_RETREAT:
-            Fight_DriveEdgeRetreat();
+            Fight_DriveEdgeRetreat(elapsed);
             if(elapsed >= FIGHT_RETREAT_TIME)
             {
                 Fight_State = FIGHT_TURN;
