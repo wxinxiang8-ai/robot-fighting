@@ -20,7 +20,7 @@
 #define SPEED_ROAMING       400         // 漫游速度(40%)
 
 // 斜坡平滑参数
-#define RAMP_STEP           250         // 每10ms最大PWM变化量
+#define RAMP_STEP           300         // 每10ms最大PWM变化量
 
 // 转向速度
 #define SPEED_TURN_L        200         // 慢转向速度(20%)

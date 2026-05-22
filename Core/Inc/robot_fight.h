@@ -6,23 +6,23 @@
 
 /*======时间参数(ms)======*/
 #define FIGHT_ENGAGE_TIMEOUT 3000 //交战时间
-#define FIGHT_ENGAGE_LOST 500 //交战丢失时间
+#define FIGHT_ENGAGE_LOST 300 //交战丢失时间
 #define FIGHT_EDGE_STOP_TIME 15 //边缘确认后停顿时间
-#define FIGHT_FRONT_HOLD_TIME 600U //IR4+IR11双遮挡后正前直推保持时间
+#define FIGHT_FRONT_HOLD_TIME 300U //IR4+IR11双遮挡后正前直推保持时间
 #define FIGHT_REAR_EDGE_CONFIRM_COUNT 2 //后方边缘连续确认次数
 #define FIGHT_REAR_ESCAPE_TIME 300 //后方边缘触发后的前进脱离时间
 #define FIGHT_REAR_ESCAPE_SPEED 450 //后方边缘前进脱离速度
 #define FIGHT_RETREAT_TIME 550 //前边缘直退时间
-#define FIGHT_RETREAT_SOFT_TIME 200 //前边缘初段中速后退时间
-#define FIGHT_RETREAT_SOFT_SPEED 300 //前边缘初段中速后退速度
-#define FIGHT_RETREAT_SPEED 500 //前边缘后退基础速度
+#define FIGHT_RETREAT_SOFT_TIME 250 //前边缘初段中速后退时间
+#define FIGHT_RETREAT_SOFT_SPEED 250 //前边缘初段中速后退速度
+#define FIGHT_RETREAT_SPEED 430 //前边缘后退基础速度
 #define FIGHT_EDGE_RETREAT_DIFF 100 //单侧前边缘小弧后退时的左右轮差速
 #define FIGHT_TURN_TIME   550 //普通掉头时间(180°)
 #define FIGHT_EDGE_TURN_TIME 320 //单侧边缘逃逸后的短转时间
 #define FIGHT_EDGE_ARC_MEMORY_MS 800U //双前边缘逃逸可参考的最近前侧方弧追记忆时间
 #define FIGHT_TURN_SPEED 500 //原地转向速度
 #define FIGHT_FB_RETREAT_TIME 500 //F/B回避先后退时间
-#define FIGHT_FB_RETREAT_SPEED 400
+#define FIGHT_FB_RETREAT_SPEED 320
 #define FIGHT_FB_FORWARD_TIME 700 //F/B回避后前进时间
 #define FIGHT_FB_ADVANCE_SPEED 350
 #define FIGHT_TRACK_FRONT_ARC_INNER_SPEED -100//前侧方甩头内侧轮速度
