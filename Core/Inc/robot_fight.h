@@ -35,6 +35,7 @@
 #define FIGHT_TRACK_REAR_ARC_BACK_SPEED 300 //后侧方甩头内侧反转速度
 #define FIGHT_TRACK_REAR_ARC_FORWARD_SPEED 700 //后侧方甩头外侧前进速度
 #define FIGHT_VISION_CONFIRM_COUNT 2 //视觉类型消抖次数
+#define FIGHT_FRIEND_MIN_AREA 5000 //友方触发回避的最小视觉面积
 #define FIGHT_SHADE_CONFIRM_TIME 100U //V0/V1灰度掉台持续确认时间
 
 /*======敌人（能量块）方向======*/

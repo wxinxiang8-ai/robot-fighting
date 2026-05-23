@@ -388,8 +388,9 @@ void Fight_Update(void)
         }
     }
 
-    // 视觉识别到 F/B 类型时进入独立回避链路，避免把对方能量块当作可直接顶推目标。
-    if((vision_type == 'F' || vision_type == 'B') &&
+    // 远距离友方不回避，炸弹仍保持直接回避。
+    if((vision_type == 'B' ||
+        (vision_type == 'F' && vision_target.area >= FIGHT_FRIEND_MIN_AREA)) &&
        Fight_State != FIGHT_EDGE_STOP &&
        Fight_State != FIGHT_RETREAT &&
        Fight_State != FIGHT_TURN &&
