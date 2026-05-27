@@ -87,7 +87,7 @@ static void Backup_StartTurn180(uint32_t current_time)
 
 static int Backup_IsOnStage(void)
 {
-    return (voltage_v0 < 2.8f && voltage_v1 < 2.8f);
+    return (voltage_v0 < 2.8f);
 }
 
 static int Backup_IsFrontBoundaryBlocked(void)

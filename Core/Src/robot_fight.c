@@ -255,8 +255,7 @@ static bool detect_shade(uint32_t now)
 {
     site_detect_shade();
 
-    if((voltage_v0 > 2.8f && voltage_v0 < 3.1f) &&
-       (voltage_v1 > 2.8f && voltage_v1 < 3.1f))
+    if(voltage_v0 > 2.8f && voltage_v0 < 3.1f)
     {
         if(Fight_ShadeStartTime == 0)
         {
@@ -321,7 +320,6 @@ static bool Fight_ShouldAvoidVisionTarget(char vision_type)
 {
     uint32_t vision_time;
     char raw_type;
-    int32_t area;
     int8_t vision_dir;
 
     if(Vision_IsTimeout() || !vision_target.valid)
@@ -339,17 +337,16 @@ static bool Fight_ShouldAvoidVisionTarget(char vision_type)
     Fight_FBAvoidVisionTime = vision_time;
 
     raw_type = vision_target.type;
-    area = vision_target.area;
     vision_dir = vision_target.dir;
 
     if(vision_type == 'F' && raw_type == 'F')
     {
         Fight_BombAvoidCount = 0;
-        if(area < FIGHT_FRIEND_AREA_OFF || !Fight_IsFriendVisionFront(vision_dir))
+        if(!Fight_IsFriendVisionFront(vision_dir))
         {
             Fight_FriendAvoidCount = 0;
         }
-        else if(area >= FIGHT_FRIEND_AREA_ON && Fight_FriendAvoidCount < FIGHT_FB_CONFIRM_COUNT)
+        else if(Fight_FriendAvoidCount < FIGHT_FB_CONFIRM_COUNT)
         {
             Fight_FriendAvoidCount++;
         }
@@ -359,11 +356,7 @@ static bool Fight_ShouldAvoidVisionTarget(char vision_type)
     if(vision_type == 'B' && raw_type == 'B')
     {
         Fight_FriendAvoidCount = 0;
-        if(area < FIGHT_BOMB_AREA_OFF)
-        {
-            Fight_BombAvoidCount = 0;
-        }
-        else if(area >= FIGHT_BOMB_AREA_ON && Fight_BombAvoidCount < FIGHT_FB_CONFIRM_COUNT)
+        if(Fight_BombAvoidCount < FIGHT_FB_CONFIRM_COUNT)
         {
             Fight_BombAvoidCount++;
         }

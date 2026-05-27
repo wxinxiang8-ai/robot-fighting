@@ -38,7 +38,7 @@ typedef enum {
 #define ROAMING_BACK_TIME  550   // 后退时间
 #define ROAMING_BACK_SOFT_TIME 250 // 初段中速后退时间
 #define ROAMING_BACK_SOFT_SPEED 250 // 初段中速后退速度
-#define ROAMING_BACKAND_TURN_TIME  600   // 后退并转向时间
+#define ROAMING_BACKAND_TURN_TIME  500   // 后退并转向时间
 #define ROAMING_TURN_LEFT_TIME  420   // 左转时间
 #define ROAMING_TURN_RIGHT_TIME  470   // 右转时间
 #define ROAMING_REPEAT_TURN_BONUS_TIME  120 // 同侧短期重复触边时额外补偿转向时间

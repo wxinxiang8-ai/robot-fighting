@@ -60,7 +60,6 @@
 #define PID_DEBUG_MODE         0
 #define UART_TEST_MODE         0
 #define STATE_UART_DEBUG_MODE  0
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -114,12 +113,16 @@ static uint8_t State_Debug_PinValue(GPIO_PinState state)
 static void State_Debug_Update(void)
 {
   static uint32_t state_debug_last_print = 0;
-  static char uart_buf[48];
+  static char uart_buf[128];
   uint32_t now = HAL_GetTick();
 
   if ((now - state_debug_last_print) >= STATE_UART_DEBUG_PRINT_MS)
   {
     RobotState state = Robot_Control_GetState();
+    uint32_t vision_rx_total;
+    uint32_t vision_rx_success;
+    uint32_t vision_rx_cserr;
+    uint8_t vision_timeout = Vision_IsTimeout();
     int len;
 
     state_debug_last_print = now;
@@ -128,9 +131,16 @@ static void State_Debug_Update(void)
       return;
     }
 
+    Vision_GetStats(&vision_rx_total, &vision_rx_success, &vision_rx_cserr);
     len = snprintf(uart_buf, sizeof(uart_buf),
-                   "state:%s,ir:%u%u%u%u%u%u%u%u%u%u%u%u%u\r\n",
+                   "state:%s,vis:%c,v:%u,to:%u,rx:%lu,ok:%lu,cs:%lu,ir:%u%u%u%u%u%u%u%u%u%u%u%u%u\r\n",
                    State_Debug_GetName(state),
+                   vision_target.type,
+                   vision_target.valid,
+                   vision_timeout,
+                   (unsigned long)vision_rx_total,
+                   (unsigned long)vision_rx_success,
+                   (unsigned long)vision_rx_cserr,
                    State_Debug_PinValue(Obs_Data.IR1),
                    State_Debug_PinValue(Obs_Data.IR2),
                    State_Debug_PinValue(Obs_Data.IR3),
@@ -386,7 +396,6 @@ int main(void)
   MOTOR_StopAll();
 #elif UART_TEST_MODE
   (void)control_last_tick;
-  HAL_UART_Transmit(&huart2, (uint8_t *)"USART2 TEST START\r\n", 19, 100);
 #else
   MOTOR_Init();
   ENCODER_Init();
@@ -522,8 +531,13 @@ int main(void)
     PID_Debug_Update();
     HAL_Delay(1);
 #elif UART_TEST_MODE
-    HAL_UART_Transmit(&huart2, (uint8_t *)"USART2 OK\r\n", 11, 100);
-    HAL_Delay(2000);
+    {
+      uint8_t rx_ch;
+      if (HAL_UART_Receive(&huart2, &rx_ch, 1U, 100U) == HAL_OK)
+      {
+        HAL_UART_Transmit(&huart2, &rx_ch, 1U, 100U);
+      }
+    }
 #else
     Edge_Sensor_Detect();
     JY62_Update();

@@ -63,7 +63,7 @@ static RoamingBackReason get_front_edge_reason(void)
 }
 
 /**
- * @description: 检测是否掉落擂台（V0/V1 两路同时超阈值判定掉台）
+ * @description: 检测是否掉落擂台（V0 超阈值判定掉台）
  * @param void
  * @return int 1=掉落擂台, 0=在擂台上
  */
@@ -71,8 +71,7 @@ static int detect_shade(void)
 {
     site_detect_shade();//read shade sensor data
 
-    if((voltage_v0 > 2.8f && voltage_v0 < 3.1f) &&
-       (voltage_v1 > 2.8f && voltage_v1 < 3.1f))
+    if(voltage_v0 > 2.8f && voltage_v0 < 3.1f)
     {
         if(Roaming_ShadeCount < ROAMING_SHADE_CONFIRM_COUNT)
         {
