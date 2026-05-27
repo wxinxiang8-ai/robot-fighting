@@ -3,6 +3,7 @@
 #include "obstacle.h"
 #include "shade.h"
 #include "vision_parser.h"
+#include "jy62.h"
 
 typedef enum {
     FIGHT_EDGE_SIDE_NONE = 0,                         // 未锁存前边缘方向
@@ -34,6 +35,8 @@ static uint32_t Fight_LastFrontArcTime = 0;          // 最近一次前侧方弧
 static EnemyDir Fight_EdgeEscapeArcDir = DIR_NONE;   // 触发前边缘时锁存的逃逸参考方向
 static FightEdgeSide Fight_EdgeSide = FIGHT_EDGE_SIDE_NONE; // 触发前边缘时锁存的边缘侧别
 static bool Fight_FrontHoldConsumed = false;         // 双前遮挡正前保持只进入一次，避免 1000ms 保持反复重启
+static uint32_t Fight_FrontArcLockStartTime = 0;     // 前侧方持续遮挡起始时间
+static EnemyDir Fight_FrontArcBreakDir = DIR_NONE;   // 前侧方锁死后大弧甩头方向
 
 static EnemyDir Fight_GetLockedTrackDir(void)
 {
@@ -156,6 +159,26 @@ static bool Fight_ShouldTurnRight(void)
             (Fight_EdgeSide == FIGHT_EDGE_SIDE_NONE && Fight_EdgeEscapeArcDir == DIR_FRONT_LEFT));
 }
 
+static bool Fight_CanPitchRecover(void)
+{
+    return (Fight_State != FIGHT_EDGE_STOP &&
+            Fight_State != FIGHT_RETREAT &&
+            Fight_State != FIGHT_TURN &&
+            Fight_State != FIGHT_REAR_EDGE_STOP &&
+            Fight_State != FIGHT_REAR_ESCAPE &&
+            Fight_State != FIGHT_PITCH_RECOVER &&
+            Fight_State != FIGHT_DONE);
+}
+
+static void Fight_StartPitchRecover(uint32_t now)
+{
+    Fight_ShadeStartTime = 0;
+    Fight_RearEdgeCount = 0;
+    MOTOR_BrakeAllRelease();
+    Fight_State = FIGHT_PITCH_RECOVER;
+    Fight_StartTime = now;
+}
+
 /*======传感器读取======*/
 
 /**
@@ -232,8 +255,8 @@ static bool detect_shade(uint32_t now)
 {
     site_detect_shade();
 
-    if((voltage_v0 > 2.8f && voltage_v0 < 3.0f) &&
-       (voltage_v1 > 2.8f && voltage_v1 < 3.0f))
+    if((voltage_v0 > 2.8f && voltage_v0 < 3.1f) &&
+       (voltage_v1 > 2.8f && voltage_v1 < 3.1f))
     {
         if(Fight_ShadeStartTime == 0)
         {
@@ -378,6 +401,9 @@ void Fight_Init(void)
     Fight_EdgeEscapeArcDir = DIR_NONE;
     Fight_EdgeSide = FIGHT_EDGE_SIDE_NONE;
     Fight_FrontHoldConsumed = false;
+    Fight_FrontArcLockStartTime = 0;
+    Fight_FrontArcBreakDir = DIR_NONE;
+    JY62_PitchTilt_Reset();
 }
 
 void Fight_InitWithDir(EnemyDir dir)
@@ -400,6 +426,8 @@ void Fight_Update(void)
     EnemyDir dir;
     char vision_type;
     bool front_hold_trigger;
+    bool front_arc_pair_trigger;
+    EnemyDir front_arc_break_dir = DIR_NONE;
 
     Edge_Sensor_Detect();
     // 前边缘优先级最高，除正在执行边缘逃逸链路外，任何进攻动作都要立刻打断。
@@ -421,6 +449,7 @@ void Fight_Update(void)
 
     raw_dir = Fight_GetEnemyDir();
     front_hold_trigger = (Obs_Data.IR4 == OBS_BLOCKED_STATE && Obs_Data.IR11 == OBS_BLOCKED_STATE);
+    front_arc_pair_trigger = (Obs_Data.IR3 == OBS_BLOCKED_STATE && Obs_Data.IR5 == OBS_BLOCKED_STATE);
     Fight_StableDir = raw_dir;
     Fight_PrevRawDir = raw_dir;
     dir = Fight_StableDir;
@@ -470,6 +499,15 @@ void Fight_Update(void)
         }
     }
 
+    if(Fight_CanPitchRecover() &&
+       !Fight_EdgeDetected() &&
+       !Fight_RearEdgeDetected() &&
+       JY62_PitchTiltDetected(FIGHT_PITCH_TILT_THRESHOLD_DEG, FIGHT_PITCH_TILT_CONFIRM_MS))
+    {
+        Fight_StartPitchRecover(now);
+        return;
+    }
+
     // F/B回避只用新视觉帧连续确认，避免单帧面积抖动导致忽远忽近。
     if(Fight_ShouldAvoidVisionTarget(vision_type) &&
        Fight_State != FIGHT_EDGE_STOP &&
@@ -480,12 +518,53 @@ void Fight_Update(void)
        Fight_State != FIGHT_FB_TURN &&
        Fight_State != FIGHT_FORWARD &&
        Fight_State != FIGHT_FB_ADVANCE &&
+       Fight_State != FIGHT_FRONT_ARC_BREAK &&
+       Fight_State != FIGHT_PITCH_RECOVER &&
        Fight_State != FIGHT_DONE)
     {
         MOTOR_BrakeAll();
         Fight_State = FIGHT_FB_TURN;
         Fight_StartTime = now;
         return;
+    }
+
+    if(Fight_State == FIGHT_ENGAGE)
+    {
+        if(front_arc_pair_trigger)
+        {
+            front_arc_break_dir = (Fight_LastFrontArcDir == DIR_FRONT_LEFT || Fight_LastTrackSide == DIR_LEFT) ? DIR_FRONT_LEFT : DIR_FRONT_RIGHT;
+        }
+        else if(dir == DIR_FRONT_LEFT || dir == DIR_FRONT_SLIGHT_LEFT)
+        {
+            front_arc_break_dir = DIR_FRONT_LEFT;
+        }
+        else if(dir == DIR_FRONT_RIGHT || dir == DIR_FRONT_SLIGHT_RIGHT)
+        {
+            front_arc_break_dir = DIR_FRONT_RIGHT;
+        }
+
+        if(front_arc_break_dir == DIR_NONE)
+        {
+            Fight_FrontArcLockStartTime = 0;
+            Fight_FrontArcBreakDir = DIR_NONE;
+        }
+        else if(Fight_FrontArcBreakDir != front_arc_break_dir || Fight_FrontArcLockStartTime == 0)
+        {
+            Fight_FrontArcBreakDir = front_arc_break_dir;
+            Fight_FrontArcLockStartTime = now;
+        }
+        else if((now - Fight_FrontArcLockStartTime) >= FIGHT_FRONT_ARC_LOCK_TIME)
+        {
+            Motor_Ramp_SyncFromCurrent();
+            Fight_State = FIGHT_FRONT_ARC_BREAK;
+            Fight_StartTime = now;
+            return;
+        }
+    }
+    else if(Fight_State != FIGHT_FRONT_ARC_BREAK)
+    {
+        Fight_FrontArcLockStartTime = 0;
+        Fight_FrontArcBreakDir = DIR_NONE;
     }
 
     if(Fight_State == FIGHT_ENGAGE && front_hold_trigger && !Fight_FrontHoldConsumed)
@@ -612,6 +691,29 @@ void Fight_Update(void)
             Motor_Ramp_Update();
             if(elapsed >= FIGHT_FRONT_HOLD_TIME)
             {
+                Fight_State = FIGHT_ENGAGE;
+                Fight_StartTime = now;
+            }
+            break;
+
+        case FIGHT_FRONT_ARC_BREAK:
+            if(Fight_FrontArcBreakDir == DIR_FRONT_LEFT)
+            {
+                Motor_Ramp_SetTarget(FIGHT_FRONT_ARC_BREAK_INNER_SPEED,
+                                     FIGHT_FRONT_ARC_BREAK_OUTER_SPEED);
+            }
+            else
+            {
+                Motor_Ramp_SetTarget(FIGHT_FRONT_ARC_BREAK_OUTER_SPEED,
+                                     FIGHT_FRONT_ARC_BREAK_INNER_SPEED);
+            }
+            Motor_Ramp_Update();
+            if(elapsed >= FIGHT_FRONT_ARC_BREAK_TIME)
+            {
+                Fight_FrontArcLockStartTime = 0;
+                Fight_FrontArcBreakDir = DIR_NONE;
+                Fight_EngageLost = 0;
+                Motor_Ramp_SyncFromCurrent();
                 Fight_State = FIGHT_ENGAGE;
                 Fight_StartTime = now;
             }
@@ -770,6 +872,22 @@ void Fight_Update(void)
                 Motor_Ramp_SetTarget(FIGHT_TRACK_SIDE_ARC_FORWARD_SPEED, -FIGHT_TRACK_SIDE_ARC_BACK_SPEED);
             }
             Motor_Ramp_Update();
+            break;
+
+        case FIGHT_PITCH_RECOVER:
+            if(MOTOR_IsBraking())
+            {
+                Fight_StartTime = now;
+                break;
+            }
+            drive_user_defined(-FIGHT_PITCH_RECOVER_SPEED, -FIGHT_PITCH_RECOVER_SPEED);
+            if(elapsed >= FIGHT_PITCH_RECOVER_TIME)
+            {
+                Fight_EngageLost = 0;
+                Motor_Ramp_SyncFromCurrent();
+                Fight_State = FIGHT_ENGAGE;
+                Fight_StartTime = now;
+            }
             break;
 
         /*======完成状态======*/

@@ -8,10 +8,10 @@
 #define SPEED_MAX_INPUT     1000        // 速度输入最大值
 
 // 制动参数
-#define BRAKE_PULSE_SPEED   400         // 一级反向制动速度
+#define BRAKE_PULSE_SPEED   500         // 一级反向制动速度
 #define BRAKE_PULSE_MS      25          // 一级反向制动时间(ms)
-#define BRAKE_HOLD_SPEED    220         // 二级反向拖刹速度
-#define BRAKE_HOLD_MS       8           // 二级反向拖刹时间(ms)
+#define BRAKE_HOLD_SPEED    260         // 二级反向拖刹速度
+#define BRAKE_HOLD_MS       0           // 二级反向拖刹时间(ms)
 
 // 预定义速度等级
 #define SPEED_LOW           300         // 低速(30%)

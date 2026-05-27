@@ -46,7 +46,7 @@ typedef enum{
 /*======速度参数======*/
 #define GOUP_RUSH_SPEED_STAGE1 500
 #define GOUP_RUSH_SPEED_STAGE2 600
-#define GOUP_RUSH_SPEED_STAGE3 650
+#define GOUP_RUSH_SPEED_STAGE3 700
 
 /*======函数声明======*/
 void GoUp_Init(void);

@@ -106,22 +106,47 @@ static const char *State_Debug_GetName(RobotState state)
   }
 }
 
+static uint8_t State_Debug_PinValue(GPIO_PinState state)
+{
+  return (state == GPIO_PIN_SET) ? 1U : 0U;
+}
+
 static void State_Debug_Update(void)
 {
   static uint32_t state_debug_last_print = 0;
+  static char uart_buf[48];
   uint32_t now = HAL_GetTick();
 
   if ((now - state_debug_last_print) >= STATE_UART_DEBUG_PRINT_MS)
   {
     RobotState state = Robot_Control_GetState();
-    char uart_buf[32] = {0};
     int len;
 
     state_debug_last_print = now;
-    len = snprintf(uart_buf, sizeof(uart_buf), "state:%s,%d\r\n", State_Debug_GetName(state), (int)state);
-    if (len > 0)
+    if (huart2.gState != HAL_UART_STATE_READY)
     {
-      HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf, (uint16_t)len, 100);
+      return;
+    }
+
+    len = snprintf(uart_buf, sizeof(uart_buf),
+                   "state:%s,ir:%u%u%u%u%u%u%u%u%u%u%u%u%u\r\n",
+                   State_Debug_GetName(state),
+                   State_Debug_PinValue(Obs_Data.IR1),
+                   State_Debug_PinValue(Obs_Data.IR2),
+                   State_Debug_PinValue(Obs_Data.IR3),
+                   State_Debug_PinValue(Obs_Data.IR4),
+                   State_Debug_PinValue(Obs_Data.IR5),
+                   State_Debug_PinValue(Obs_Data.IR6),
+                   State_Debug_PinValue(Obs_Data.IR7),
+                   State_Debug_PinValue(Obs_Data.IR8),
+                   State_Debug_PinValue(Obs_Data.IR9),
+                   State_Debug_PinValue(Obs_Data.IR10),
+                   State_Debug_PinValue(Obs_Data.IR11),
+                   State_Debug_PinValue(Obs_Data.IR12),
+                   State_Debug_PinValue(Obs_Data.IR13));
+    if ((len > 0) && (len < (int)sizeof(uart_buf)))
+    {
+      HAL_UART_Transmit_DMA(&huart2, (uint8_t *)uart_buf, (uint16_t)len);
     }
   }
 }
