@@ -59,7 +59,7 @@
 #define JY62_TEST_MODE         0
 #define PID_DEBUG_MODE         0
 #define UART_TEST_MODE         0
-#define STATE_UART_DEBUG_MODE  0
+#define STATE_UART_DEBUG_MODE  1
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/

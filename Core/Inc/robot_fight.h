@@ -43,8 +43,7 @@
 #define FIGHT_TRACK_REAR_ARC_BACK_SPEED 500 //后侧方甩头内侧反转速度
 #define FIGHT_TRACK_REAR_ARC_FORWARD_SPEED 700 //后侧方甩头外侧前进速度
 #define FIGHT_VISION_CONFIRM_COUNT 2 //视觉类型消抖次数
-#define FIGHT_FB_CONFIRM_COUNT 2 //F/B回避连续新视觉帧确认次数
-#define FIGHT_FRIEND_DIR_GATE 35 //友方回避正前方向窗口
+#define FIGHT_FB_CONFIRM_COUNT 1 //F/B回避连续新视觉帧确认次数
 #define FIGHT_SHADE_CONFIRM_TIME 100U //V0/V1灰度掉台持续确认时间
 
 /*======敌人（能量块）方向======*/

@@ -305,11 +305,6 @@ static char Fight_GetStableVisionType(void)
     return Fight_StableVisionType;
 }
 
-static bool Fight_IsFriendVisionFront(int8_t vision_dir)
-{
-    return (vision_dir >= -FIGHT_FRIEND_DIR_GATE && vision_dir <= FIGHT_FRIEND_DIR_GATE);
-}
-
 static void Fight_ResetFBAvoidConfirm(void)
 {
     Fight_FriendAvoidCount = 0;
@@ -320,7 +315,6 @@ static bool Fight_ShouldAvoidVisionTarget(char vision_type)
 {
     uint32_t vision_time;
     char raw_type;
-    int8_t vision_dir;
 
     if(Vision_IsTimeout() || !vision_target.valid)
     {
@@ -337,16 +331,11 @@ static bool Fight_ShouldAvoidVisionTarget(char vision_type)
     Fight_FBAvoidVisionTime = vision_time;
 
     raw_type = vision_target.type;
-    vision_dir = vision_target.dir;
 
     if(vision_type == 'F' && raw_type == 'F')
     {
         Fight_BombAvoidCount = 0;
-        if(!Fight_IsFriendVisionFront(vision_dir))
-        {
-            Fight_FriendAvoidCount = 0;
-        }
-        else if(Fight_FriendAvoidCount < FIGHT_FB_CONFIRM_COUNT)
+        if(Fight_FriendAvoidCount < FIGHT_FB_CONFIRM_COUNT)
         {
             Fight_FriendAvoidCount++;
         }
