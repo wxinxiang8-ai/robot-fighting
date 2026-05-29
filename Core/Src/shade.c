@@ -22,6 +22,8 @@ uint16_t shade_v1;//adc value
 float voltage_v0;//voltage value
 float voltage_v1;//voltage value
 
+#define SHADE_IN_RANGE(value, min_v, max_v) ((value) >= (min_v) && (value) <= (max_v))
+
 void Shade_Sensor_Init(void)
 {
     HAL_ADC_Start_DMA(&hadc2,(uint32_t*)shade_buf,2);//start adc2 dma
@@ -42,6 +44,37 @@ void site_detect_shade()
 
     voltage_v0 = (float)(shade_v0 * 3.3f) / 4095.0f;//convert adc value to voltage value
     voltage_v1 = (float)(shade_v1 * 3.3f) / 4095.0f;//convert adc value to voltage value
+}
+
+ShadeScene_t Shade_GetScene(void)
+{
+    if(SHADE_IN_RANGE(voltage_v0, SHADE_OFF_FLOOR_V0_MIN, SHADE_OFF_FLOOR_V0_MAX) &&
+       SHADE_IN_RANGE(voltage_v1, SHADE_OFF_FLOOR_V1_MIN, SHADE_OFF_FLOOR_V1_MAX))
+    {
+        return SHADE_SCENE_OFF_FLOOR;
+    }
+
+    if(SHADE_IN_RANGE(voltage_v0, SHADE_OFF_YELLOW_V0_MIN, SHADE_OFF_YELLOW_V0_MAX) &&
+       SHADE_IN_RANGE(voltage_v1, SHADE_OFF_YELLOW_V1_MIN, SHADE_OFF_YELLOW_V1_MAX))
+    {
+        return SHADE_SCENE_OFF_YELLOW;
+    }
+
+    if(SHADE_IN_RANGE(voltage_v0, SHADE_OFF_BLUE_V0_MIN, SHADE_OFF_BLUE_V0_MAX) &&
+       SHADE_IN_RANGE(voltage_v1, SHADE_OFF_BLUE_V1_MIN, SHADE_OFF_BLUE_V1_MAX))
+    {
+        return SHADE_SCENE_OFF_BLUE;
+    }
+
+    return SHADE_SCENE_ON_STAGE;
+}
+
+uint8_t Shade_IsOffStageScene(void)
+{
+    ShadeScene_t scene = Shade_GetScene();
+    return (scene == SHADE_SCENE_OFF_FLOOR ||
+            scene == SHADE_SCENE_OFF_YELLOW ||
+            scene == SHADE_SCENE_OFF_BLUE);
 }
 
 void Shade_TestInject_Enable(uint16_t v0_adc, uint16_t v1_adc)

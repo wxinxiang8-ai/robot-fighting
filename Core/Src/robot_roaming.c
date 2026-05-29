@@ -25,6 +25,9 @@ static bool Roaming_Done = false;
 static RoamingBackReason Roaming_BackReason = BACK_REASON_NONE;
 static uint32_t Roaming_TurnDuration = ROAMING_TURN_LEFT_TIME;
 static uint8_t Roaming_ShadeCount = 0;
+#if SHADE_OFFSTAGE_SCENE_MODE
+static uint32_t Roaming_ShadeSceneStartTime = 0;
+#endif
 static RoamingTurnDir Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
 static RoamingBackReason Roaming_LastSingleBackReason = BACK_REASON_NONE;
 static uint8_t Roaming_SameSideRepeatCount = 0;
@@ -38,6 +41,9 @@ static int detect_rear_edge(void)
 static void Roaming_StartPitchRecover(uint32_t now)
 {
     Roaming_ShadeCount = 0;
+#if SHADE_OFFSTAGE_SCENE_MODE
+    Roaming_ShadeSceneStartTime = 0;
+#endif
     Roaming_RearEdgeCount = 0;
     MOTOR_BrakeAllRelease();
     Roaming_Stage = ROAMING_PITCH_RECOVER;
@@ -66,10 +72,23 @@ static RoamingBackReason get_front_edge_reason(void)
  * @param void
  * @return int 1=掉落擂台, 0=在擂台上
  */
-static int detect_shade(void)
+static int detect_shade(uint32_t now)
 {
     site_detect_shade();//read shade sensor data
 
+#if SHADE_OFFSTAGE_SCENE_MODE
+    if(Shade_IsOffStageScene())
+    {
+        if(Roaming_ShadeSceneStartTime == 0)
+        {
+            Roaming_ShadeSceneStartTime = now;
+        }
+        return ((now - Roaming_ShadeSceneStartTime) >= SHADE_OFFSTAGE_SCENE_CONFIRM_TIME);
+    }
+
+    Roaming_ShadeSceneStartTime = 0;
+    return 0;
+#else
     if((voltage_v0 > 2.8f && voltage_v0 < 3.1f) &&
        (voltage_v1 > 2.8f && voltage_v1 < 3.1f))
     {
@@ -84,6 +103,7 @@ static int detect_shade(void)
     }
 
     return (Roaming_ShadeCount >= ROAMING_SHADE_CONFIRM_COUNT);
+#endif
 }
 
 /**
@@ -99,6 +119,9 @@ void Roaming_Init(void)
     Roaming_Done = false;
     Roaming_BackReason = BACK_REASON_NONE;
     Roaming_ShadeCount = 0;
+#if SHADE_OFFSTAGE_SCENE_MODE
+    Roaming_ShadeSceneStartTime = 0;
+#endif
     Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
     Roaming_LastSingleBackReason = BACK_REASON_NONE;
     Roaming_SameSideRepeatCount = 0;
@@ -121,7 +144,7 @@ void Roaming_Update(void)
     current_reason = get_front_edge_reason();
 
     // 非前进态下保持原有灰度掉台保护
-    if(Roaming_Stage != ROAMING_FORWARD && detect_shade())
+    if(Roaming_Stage != ROAMING_FORWARD && detect_shade(current_time))
     {
         Roaming_Stage = ROAMING_DONE;
         Roaming_Done = true;
@@ -145,6 +168,9 @@ void Roaming_Update(void)
             {
                 MOTOR_BrakeAll();
                 Roaming_ShadeCount = 0;
+#if SHADE_OFFSTAGE_SCENE_MODE
+    Roaming_ShadeSceneStartTime = 0;
+#endif
                 Roaming_RearEdgeCount = 0;
                 Roaming_Stage = ROAMING_REAR_EDGE_STOP;
                 Roaming_StartTime = current_time;
@@ -181,6 +207,9 @@ void Roaming_Update(void)
                     {
                         MOTOR_BrakeAll();
                         Roaming_ShadeCount = 0;
+#if SHADE_OFFSTAGE_SCENE_MODE
+    Roaming_ShadeSceneStartTime = 0;
+#endif
                         Roaming_RearEdgeCount = 0;
                         Roaming_Stage = ROAMING_REAR_EDGE_STOP;
                         Roaming_StartTime = current_time;
@@ -190,7 +219,7 @@ void Roaming_Update(void)
                 Roaming_RearEdgeCount = 0;
 
                 // 无边缘预警时，再做灰度掉台判断
-                if(detect_shade())
+                if(detect_shade(current_time))
                 {
                     Roaming_Stage = ROAMING_DONE;
                     Roaming_Done = true;
@@ -208,6 +237,9 @@ void Roaming_Update(void)
             else
             {
                 Roaming_ShadeCount = 0;
+#if SHADE_OFFSTAGE_SCENE_MODE
+    Roaming_ShadeSceneStartTime = 0;
+#endif
                 Roaming_RearEdgeCount = 0;
                 Roaming_BackReason = current_reason;
                 Roaming_Stage = ROAMING_EDGE_STOP;

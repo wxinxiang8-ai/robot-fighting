@@ -27,6 +27,9 @@ static uint32_t Fight_FBAvoidVisionTime = 0;         // 上一次参与F/B回避
 static uint8_t Fight_FriendAvoidCount = 0;           // 友方回避连续确认计数
 static uint8_t Fight_BombAvoidCount = 0;             // 炸弹回避连续确认计数
 static uint32_t Fight_ShadeStartTime = 0;            // 灰度掉台原始条件开始成立的时间
+#if SHADE_OFFSTAGE_SCENE_MODE
+static uint32_t Fight_ShadeSceneStartTime = 0;
+#endif
 static bool Fight_DownFlag = false;                  // 掉台标志（通知总控切 BACKUP）
 static EnemyDir Fight_TrackDir = DIR_NONE;           // 侧边/后侧边甩头追踪时锁定的方向
 static EnemyDir Fight_LastTrackSide = DIR_RIGHT;     // 正后方只知道在后面时，沿用最近一次左右甩头侧
@@ -173,6 +176,9 @@ static bool Fight_CanPitchRecover(void)
 static void Fight_StartPitchRecover(uint32_t now)
 {
     Fight_ShadeStartTime = 0;
+#if SHADE_OFFSTAGE_SCENE_MODE
+    Fight_ShadeSceneStartTime = 0;
+#endif
     Fight_RearEdgeCount = 0;
     MOTOR_BrakeAllRelease();
     Fight_State = FIGHT_PITCH_RECOVER;
@@ -255,6 +261,19 @@ static bool detect_shade(uint32_t now)
 {
     site_detect_shade();
 
+#if SHADE_OFFSTAGE_SCENE_MODE
+    if(Shade_IsOffStageScene())
+    {
+        if(Fight_ShadeSceneStartTime == 0)
+        {
+            Fight_ShadeSceneStartTime = now;
+        }
+        return ((now - Fight_ShadeSceneStartTime) >= SHADE_OFFSTAGE_SCENE_CONFIRM_TIME);
+    }
+
+    Fight_ShadeSceneStartTime = 0;
+    return false;
+#else
     if((voltage_v0 > 2.8f && voltage_v0 < 3.1f) &&
        (voltage_v1 > 2.8f && voltage_v1 < 3.1f))
     {
@@ -267,6 +286,7 @@ static bool detect_shade(uint32_t now)
 
     Fight_ShadeStartTime = 0;
     return false;
+#endif
 }
 
 static char Fight_GetStableVisionType(void)
@@ -376,6 +396,9 @@ void Fight_Init(void)
     Fight_FBAvoidVisionTime = 0;
     Fight_ResetFBAvoidConfirm();
     Fight_ShadeStartTime = 0;
+#if SHADE_OFFSTAGE_SCENE_MODE
+    Fight_ShadeSceneStartTime = 0;
+#endif
     Fight_DownFlag = false;
     Fight_TrackDir = DIR_NONE;
     Fight_LastTrackSide = DIR_RIGHT;
@@ -422,6 +445,9 @@ void Fight_Update(void)
     {
         MOTOR_BrakeAll();
         Fight_ShadeStartTime = 0;
+#if SHADE_OFFSTAGE_SCENE_MODE
+    Fight_ShadeSceneStartTime = 0;
+#endif
         Fight_RearEdgeCount = 0;
         Fight_EdgeEscapeArcDir = Fight_GetEdgeEscapeArcDir(now);
         Fight_EdgeSide = Fight_GetEdgeSide();
@@ -470,6 +496,9 @@ void Fight_Update(void)
             {
                 MOTOR_BrakeAll();
                 Fight_ShadeStartTime = 0;
+#if SHADE_OFFSTAGE_SCENE_MODE
+    Fight_ShadeSceneStartTime = 0;
+#endif
                 Fight_RearEdgeCount = 0;
                 Fight_State = FIGHT_REAR_EDGE_STOP;
                 Fight_StartTime = now;

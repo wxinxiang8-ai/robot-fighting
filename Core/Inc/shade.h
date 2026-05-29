@@ -15,8 +15,36 @@ extern uint16_t shade_v1;//adc value
 extern float voltage_v0;//voltage value
 extern float voltage_v1;//voltage value
 
+#define SHADE_OFFSTAGE_SCENE_MODE 0
+#define SHADE_OFFSTAGE_SCENE_CONFIRM_TIME 300U
+
+#define SHADE_OFF_FLOOR_V0_MIN      2.80f
+#define SHADE_OFF_FLOOR_V0_MAX      3.10f
+#define SHADE_OFF_FLOOR_V1_MIN      2.80f
+#define SHADE_OFF_FLOOR_V1_MAX      3.10f
+
+#define SHADE_OFF_YELLOW_V0_MIN     0.00f
+#define SHADE_OFF_YELLOW_V0_MAX     0.00f
+#define SHADE_OFF_YELLOW_V1_MIN     0.00f
+#define SHADE_OFF_YELLOW_V1_MAX     0.00f
+
+#define SHADE_OFF_BLUE_V0_MIN       0.00f
+#define SHADE_OFF_BLUE_V0_MAX       0.00f
+#define SHADE_OFF_BLUE_V1_MIN       0.00f
+#define SHADE_OFF_BLUE_V1_MAX       0.00f
+
+typedef enum {
+    SHADE_SCENE_ON_STAGE = 0,
+    SHADE_SCENE_OFF_FLOOR,
+    SHADE_SCENE_OFF_YELLOW,
+    SHADE_SCENE_OFF_BLUE,
+    SHADE_SCENE_UNKNOWN
+} ShadeScene_t;
+
 void Shade_Sensor_Init(void);
 void site_detect_shade(void);
+ShadeScene_t Shade_GetScene(void);
+uint8_t Shade_IsOffStageScene(void);
 void Shade_TestInject_Enable(uint16_t v0_adc, uint16_t v1_adc);
 void Shade_TestInject_Disable(void);
 
