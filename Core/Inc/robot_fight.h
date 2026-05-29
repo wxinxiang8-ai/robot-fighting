@@ -6,7 +6,7 @@
 
 /*======时间参数(ms)======*/
 #define FIGHT_ENGAGE_TIMEOUT 3000 //交战时间
-#define FIGHT_ENGAGE_LOST 800 //交战丢失时间
+#define FIGHT_ENGAGE_LOST 500 //交战丢失时间
 #define FIGHT_EDGE_STOP_TIME 15 //边缘确认后停顿时间
 #define FIGHT_FRONT_HOLD_TIME 200U //IR4+IR11双遮挡后正前直推保持时间
 #define FIGHT_REAR_EDGE_CONFIRM_COUNT 2 //后方边缘连续确认次数
