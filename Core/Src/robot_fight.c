@@ -255,7 +255,8 @@ static bool detect_shade(uint32_t now)
 {
     site_detect_shade();
 
-    if(voltage_v0 > 2.8f && voltage_v0 < 3.1f)
+    if((voltage_v0 > 2.8f && voltage_v0 < 3.1f) &&
+       (voltage_v1 > 2.8f && voltage_v1 < 3.1f))
     {
         if(Fight_ShadeStartTime == 0)
         {
@@ -766,10 +767,10 @@ void Fight_Update(void)
             }
             break;
 
-        /*======F/B回避后180°掉头======*/
+        /*======F/B回避后短转======*/
         case FIGHT_FORWARD:
             drive_user_defined(-FIGHT_TURN_SPEED, FIGHT_TURN_SPEED);
-            if(elapsed >= FIGHT_TURN_TIME)
+            if(elapsed >= FIGHT_FB_TURN_TIME)
             {
                 Fight_State = FIGHT_FB_ADVANCE;
                 Fight_StartTime = now;
@@ -862,7 +863,7 @@ void Fight_Update(void)
                 Fight_StartTime = now;
                 break;
             }
-            drive_user_defined(-FIGHT_PITCH_RECOVER_SPEED, -FIGHT_PITCH_RECOVER_SPEED);
+            drive_user_defined(-FIGHT_PITCH_RECOVER_SPEED, FIGHT_PITCH_RECOVER_SPEED);
             if(elapsed >= FIGHT_PITCH_RECOVER_TIME)
             {
                 Fight_EngageLost = 0;

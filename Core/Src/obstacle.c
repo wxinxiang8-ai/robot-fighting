@@ -34,7 +34,7 @@ void Obs_Sensor_ReadAll(void)
     Obs_Data.IR7 = HAL_GPIO_ReadPin(IR_7_GPIO_Port, IR_7_Pin);
     Obs_Data.IR8 = HAL_GPIO_ReadPin(IR_8_GPIO_Port, IR_8_Pin);
     Obs_Data.IR9 = HAL_GPIO_ReadPin(IR_9_GPIO_Port, IR_9_Pin);
-    Obs_Data.IR10 = invert_state(HAL_GPIO_ReadPin(IR_10_GPIO_Port, IR_10_Pin));
+    Obs_Data.IR10 = HAL_GPIO_ReadPin(IR_10_GPIO_Port, IR_10_Pin);
     Obs_Data.IR11 = HAL_GPIO_ReadPin(IR11_GPIO_Port, IR11_Pin);
     Obs_Data.IR12 = invert_state(HAL_GPIO_ReadPin(IR12_GPIO_Port, IR12_Pin));
     Obs_Data.IR13 = HAL_GPIO_ReadPin(IR13_GPIO_Port, IR13_Pin);
@@ -63,6 +63,6 @@ void Enmy_Sensor_Detect(void)
     Obs_Data.IR7 = HAL_GPIO_ReadPin(IR_7_GPIO_Port, IR_7_Pin);
     Obs_Data.IR8 = HAL_GPIO_ReadPin(IR_8_GPIO_Port, IR_8_Pin);
     Obs_Data.IR9 = HAL_GPIO_ReadPin(IR_9_GPIO_Port, IR_9_Pin);
-    Obs_Data.IR10 = invert_state(HAL_GPIO_ReadPin(IR_10_GPIO_Port, IR_10_Pin));
+    Obs_Data.IR10 = HAL_GPIO_ReadPin(IR_10_GPIO_Port, IR_10_Pin);
     Obs_Data.IR11 = HAL_GPIO_ReadPin(IR11_GPIO_Port, IR11_Pin);
 }

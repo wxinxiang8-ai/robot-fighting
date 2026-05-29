@@ -72,8 +72,8 @@ TeamColor Startup_WaitForTrigger(void)
  */
 void Startup_Notify(TeamColor team)
 {
-    uint8_t msg = (team == TEAM_YELLOW) ? 'y' : 'b';
-    HAL_UART_Transmit(&huart2, &msg, 1, 100);
+    uint8_t buf[3] = { (uint8_t)'#', (team == TEAM_YELLOW) ? (uint8_t)'y' : (uint8_t)'b', (uint8_t)'\n' };
+    HAL_UART_Transmit(&huart2, buf, 3, 100);
 }
 
 /**

@@ -6,7 +6,7 @@
 
 /*======时间参数(ms)======*/
 #define FIGHT_ENGAGE_TIMEOUT 3000 //交战时间
-#define FIGHT_ENGAGE_LOST 300 //交战丢失时间
+#define FIGHT_ENGAGE_LOST 800 //交战丢失时间
 #define FIGHT_EDGE_STOP_TIME 15 //边缘确认后停顿时间
 #define FIGHT_FRONT_HOLD_TIME 200U //IR4+IR11双遮挡后正前直推保持时间
 #define FIGHT_REAR_EDGE_CONFIRM_COUNT 2 //后方边缘连续确认次数
@@ -29,18 +29,19 @@
 #define FIGHT_TURN_SPEED 500 //原地转向速度
 #define FIGHT_FB_RETREAT_TIME 400 //F/B回避先后退时间
 #define FIGHT_FB_RETREAT_SPEED 320
+#define FIGHT_FB_TURN_TIME 320 //F/B回避短转时间
 #define FIGHT_FB_FORWARD_TIME 500 //F/B回避后前进时间
 #define FIGHT_FB_ADVANCE_SPEED 350
-#define FIGHT_TRACK_FRONT_ARC_INNER_SPEED -300//前侧方甩头内侧轮速度
-#define FIGHT_TRACK_FRONT_ARC_OUTER_SPEED 600 //前侧方甩头外侧轮速度
-#define FIGHT_FRONT_ARC_BREAK_INNER_SPEED -500 //前侧方锁死甩头内侧轮速度
+#define FIGHT_TRACK_FRONT_ARC_INNER_SPEED -150//前侧方甩头内侧轮速度
+#define FIGHT_TRACK_FRONT_ARC_OUTER_SPEED 550 //前侧方甩头外侧轮速度
+#define FIGHT_FRONT_ARC_BREAK_INNER_SPEED -400 //前侧方锁死甩头内侧轮速度
 #define FIGHT_FRONT_ARC_BREAK_OUTER_SPEED 700 //前侧方锁死甩头外侧轮速度
-#define FIGHT_TRACK_FRONT_SMALL_ARC_INNER_SPEED 380 //前方小弧线内侧轮速度
+#define FIGHT_TRACK_FRONT_SMALL_ARC_INNER_SPEED 400 //前方小弧线内侧轮速度
 #define FIGHT_TRACK_FRONT_SMALL_ARC_OUTER_SPEED 550 //前方小弧线外侧轮速度
 #define FIGHT_TRACK_PUSH_SPEED 550 //正前推进速度
-#define FIGHT_TRACK_SIDE_ARC_BACK_SPEED 400 //正侧方甩头内侧反转速度
+#define FIGHT_TRACK_SIDE_ARC_BACK_SPEED 250 //正侧方甩头内侧反转速度
 #define FIGHT_TRACK_SIDE_ARC_FORWARD_SPEED 650 //正侧方甩头外侧前进速度
-#define FIGHT_TRACK_REAR_ARC_BACK_SPEED 500 //后侧方甩头内侧反转速度
+#define FIGHT_TRACK_REAR_ARC_BACK_SPEED 350 //后侧方甩头内侧反转速度
 #define FIGHT_TRACK_REAR_ARC_FORWARD_SPEED 700 //后侧方甩头外侧前进速度
 #define FIGHT_VISION_CONFIRM_COUNT 2 //视觉类型消抖次数
 #define FIGHT_FB_CONFIRM_COUNT 1 //F/B回避连续新视觉帧确认次数
@@ -72,7 +73,7 @@ typedef enum{
     FIGHT_RETREAT, //前边缘后退脱离
     FIGHT_TURN,   //前边缘后退后的恢复转向
     FIGHT_FB_TURN, //F/B回避先后退
-    FIGHT_FORWARD, //F/B回避后180°掉头
+    FIGHT_FORWARD, //F/B回避后短转
     FIGHT_FB_ADVANCE, //F/B回避后短前进
     FIGHT_TRACK_SPIN, //左右侧/后侧目标的甩头追踪
     FIGHT_PITCH_RECOVER, //pitch持续倾斜后的短恢复动作

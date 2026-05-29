@@ -2,12 +2,13 @@
  * @file    vision_parser.c
  * @brief   视觉系统UART解析模块
  *
- * 协议格式: $type,cx,cy,area,dir*CS\n
- *   type: E=敌方 N=中立 F=友方 X=无目标 B=炸弹
+ * 协议格式: $type*CS\n
+ *   type: E=敌方 N=中立 F=友方 X=无目标 B=炸弹 G=冲台
  *   CS:   body字段的异或校验和(十六进制, 2位)
- *   示例: $E,320,240,5000,+25*4A\n
+ *   示例: $F*46\n
+ *   兼容旧格式: $type,cx,cy,area,dir*CS\n
  *
- * 实现方案: USART2 + DMA循环接收 + IDLE行中断
+ * 实现方案: USART2 + DMA(NORMAL) + IDLE行中断
  *   - HAL_UARTEx_ReceiveToIdle_DMA 自动利用IDLE中断触发回调
  *   - 每帧回调后立即重启DMA, 保证连续接收
  */
@@ -46,7 +47,7 @@ static uint8_t calc_checksum(const char *data, int len)
 }
 
 /* ------------------------------------------------------------------ */
-/* 内部函数: 解析单帧  $type,cx,cy,area,dir*CS\n                       */
+/* 内部函数: 解析单帧  $type*CS\n 或旧格式 $type,cx,cy,area,dir*CS\n */
 /* ------------------------------------------------------------------ */
 static void parse_frame(const uint8_t *buf, uint16_t size)
 {
@@ -91,16 +92,20 @@ static void parse_frame(const uint8_t *buf, uint16_t size)
         return;  /* 校验失败, 丢弃 */
     }
 
-    /* 解析字段: type,cx,cy,area,dir */
-    char body_copy[48];
-    memcpy(body_copy, body, (size_t)body_len);
-    body_copy[body_len] = '\0';
-
-    char type_ch = 'X';
+    char type_ch = body[0];
     int  cx = 0, cy = 0, area = 0, dir = 0;
-    int  n = sscanf(body_copy, "%c,%d,%d,%d,%d",
-                    &type_ch, &cx, &cy, &area, &dir);
-    if (n != 5) return;
+
+    if (body_len > 1)
+    {
+        char body_copy[48];
+        int  n;
+
+        memcpy(body_copy, body, (size_t)body_len);
+        body_copy[body_len] = '\0';
+        n = sscanf(body_copy, "%c,%d,%d,%d,%d",
+                   &type_ch, &cx, &cy, &area, &dir);
+        if (n != 5) return;
+    }
 
     /* 写入全局变量: 先置 valid=0 屏蔽旧数据, 写完字段后再置 valid
      * 防止主循环读到 "旧cx + 新area" 的不一致状态 */
@@ -191,18 +196,18 @@ void Vision_Init(void)
  */
 void Vision_SendColor(char color)
 {
-    uint8_t ch = (uint8_t)color;
-    HAL_UART_Transmit(&huart2, &ch, 1u, 10u);
+    uint8_t buf[3] = { (uint8_t)'#', (uint8_t)color, (uint8_t)'\n' };
+    HAL_UART_Transmit(&huart2, buf, 3u, 10u);
 }
 
 /**
- * @brief 向视觉系统发送单字节指令
+ * @brief 向视觉系统发送带定界的指令
  * @param cmd 指令字符: 'D'=掉台回复模式  'S'=恢复正常检测  'N'=新一轮开始/主控重启
  */
 void Vision_SendCmd(char cmd)
 {
-    uint8_t ch = (uint8_t)cmd;
-    HAL_UART_Transmit(&huart2, &ch, 1u, 10u);
+    uint8_t buf[3] = { (uint8_t)'#', (uint8_t)cmd, (uint8_t)'\n' };
+    HAL_UART_Transmit(&huart2, buf, 3u, 10u);
 }
 
 /**

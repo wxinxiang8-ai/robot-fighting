@@ -25,7 +25,6 @@ static bool Roaming_Done = false;
 static RoamingBackReason Roaming_BackReason = BACK_REASON_NONE;
 static uint32_t Roaming_TurnDuration = ROAMING_TURN_LEFT_TIME;
 static uint8_t Roaming_ShadeCount = 0;
-static RoamingTurnDir Roaming_LastTurnDir = ROAMING_TURN_DIR_NONE;
 static RoamingTurnDir Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
 static RoamingBackReason Roaming_LastSingleBackReason = BACK_REASON_NONE;
 static uint8_t Roaming_SameSideRepeatCount = 0;
@@ -71,7 +70,8 @@ static int detect_shade(void)
 {
     site_detect_shade();//read shade sensor data
 
-    if(voltage_v0 > 2.8f && voltage_v0 < 3.1f)
+    if((voltage_v0 > 2.8f && voltage_v0 < 3.1f) &&
+       (voltage_v1 > 2.8f && voltage_v1 < 3.1f))
     {
         if(Roaming_ShadeCount < ROAMING_SHADE_CONFIRM_COUNT)
         {
@@ -99,7 +99,6 @@ void Roaming_Init(void)
     Roaming_Done = false;
     Roaming_BackReason = BACK_REASON_NONE;
     Roaming_ShadeCount = 0;
-    Roaming_LastTurnDir = ROAMING_TURN_DIR_NONE;
     Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
     Roaming_LastSingleBackReason = BACK_REASON_NONE;
     Roaming_SameSideRepeatCount = 0;
@@ -243,17 +242,9 @@ void Roaming_Update(void)
                 {
                     Roaming_Stage = ROAMING_TURN_BOTH;
                     Roaming_TurnDuration = ROAMING_BACKAND_TURN_TIME;
-                    if(Roaming_LastTurnDir == ROAMING_TURN_DIR_RIGHT)
-                    {
-                        Roaming_BothTurnDir = ROAMING_TURN_DIR_LEFT;
-                    }
-                    else
-                    {
-                        Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
-                    }
+                    Roaming_BothTurnDir = ROAMING_TURN_DIR_RIGHT;
                     Roaming_LastSingleBackReason = BACK_REASON_NONE;
                     Roaming_SameSideRepeatCount = 0;
-                    Roaming_LastTurnDir = Roaming_BothTurnDir;
                 }
                 else if(Roaming_BackReason == BACK_REASON_LEFT)
                 {
@@ -272,7 +263,6 @@ void Roaming_Update(void)
                     }
                     Roaming_TurnDuration += ((uint32_t)Roaming_SameSideRepeatCount * ROAMING_REPEAT_TURN_BONUS_TIME);
                     Roaming_LastSingleBackReason = BACK_REASON_LEFT;
-                    Roaming_LastTurnDir = ROAMING_TURN_DIR_LEFT;
                 }
                 else if(Roaming_BackReason == BACK_REASON_RIGHT)
                 {
@@ -291,7 +281,6 @@ void Roaming_Update(void)
                     }
                     Roaming_TurnDuration += ((uint32_t)Roaming_SameSideRepeatCount * ROAMING_REPEAT_TURN_BONUS_TIME);
                     Roaming_LastSingleBackReason = BACK_REASON_RIGHT;
-                    Roaming_LastTurnDir = ROAMING_TURN_DIR_RIGHT;
                 }
                 else
                 {
@@ -370,7 +359,7 @@ void Roaming_Update(void)
                 Roaming_StartTime = current_time;
                 break;
             }
-            drive_user_defined(-ROAMING_PITCH_RECOVER_SPEED, -ROAMING_PITCH_RECOVER_SPEED);
+            drive_user_defined(-ROAMING_PITCH_RECOVER_SPEED, ROAMING_PITCH_RECOVER_SPEED);
             if(elapsed_time >= ROAMING_PITCH_RECOVER_TIME)
             {
                 Roaming_Stage = ROAMING_FORWARD;

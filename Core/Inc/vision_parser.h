@@ -25,13 +25,13 @@ extern volatile VisionTarget_t vision_target;
 void Vision_Init(void);
 
 /**
- * @brief 发送己方颜色给视觉系统
+ * @brief 发送己方颜色给视觉系统 (#<color>\n)
  * @param color 'b'=蓝方  'y'=黄方
  */
 void Vision_SendColor(char color);
 
 /**
- * @brief 发送单字节指令给视觉系统
+ * @brief 发送带定界的指令给视觉系统 (#<cmd>\n)
  * @param cmd 指令字符；当前主流程只发送 'N'=新一轮开始/主控重启
  */
 void Vision_SendCmd(char cmd);

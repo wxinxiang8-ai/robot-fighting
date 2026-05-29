@@ -59,7 +59,7 @@
 #define JY62_TEST_MODE         0
 #define PID_DEBUG_MODE         0
 #define UART_TEST_MODE         0
-#define STATE_UART_DEBUG_MODE  1
+#define STATE_UART_DEBUG_MODE  0
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -503,25 +503,23 @@ int main(void)
     HAL_Delay(1000);
 #elif VISION_OLED_TEST_MODE
     {
-      if (Vision_IsTimeout()) {
-        OLED_ShowString(2, 1, "No Data         ");
-        OLED_ShowString(3, 1, "                ");
-        OLED_ShowString(4, 1, "                ");
-      } else {
-        /* 第2行: T:x  dir:+xxx */
-        OLED_ShowString(2, 1, "T:  dir:        ");
-        OLED_ShowChar(2, 3, vision_target.type);
-        OLED_ShowSignedNum(2, 9, vision_target.dir, 3);
+      uint32_t vision_rx_total;
+      uint32_t vision_rx_success;
+      uint32_t vision_rx_cserr;
+      uint8_t vision_timeout = Vision_IsTimeout();
 
-        /* 第3行: cx:xxxx cy:xxxx */
-        OLED_ShowString(3, 1, "cx:     cy:     ");
-        OLED_ShowSignedNum(3, 4, vision_target.cx, 4);
-        OLED_ShowSignedNum(3, 12, vision_target.cy, 4);
+      Vision_GetStats(&vision_rx_total, &vision_rx_success, &vision_rx_cserr);
+      OLED_ShowString(2, 1, "T:  V:  TO:     ");
+      OLED_ShowChar(2, 3, vision_target.type);
+      OLED_ShowNum(2, 7, vision_target.valid, 1);
+      OLED_ShowNum(2, 12, vision_timeout, 1);
 
-        /* 第4行: area:xxxxxxx */
-        OLED_ShowString(4, 1, "area:           ");
-        OLED_ShowSignedNum(4, 6, vision_target.area, 7);
-      }
+      OLED_ShowString(3, 1, "RX:     OK:     ");
+      OLED_ShowNum(3, 4, vision_rx_total, 5);
+      OLED_ShowNum(3, 12, vision_rx_success, 5);
+
+      OLED_ShowString(4, 1, "CS:             ");
+      OLED_ShowNum(4, 4, vision_rx_cserr, 5);
       HAL_Delay(100);
     }
 #elif JY62_TEST_MODE

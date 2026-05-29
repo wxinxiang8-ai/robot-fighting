@@ -19,7 +19,7 @@ typedef enum {
     BACKUP_PROBE_FORWARD,
     BACKUP_WALL_PRESS,
     BACKUP_ESCAPE_BACK,
-    BACKUP_TURN_180,
+    BACKUP_TURN_AROUND,
     BACKUP_WALL_RUSH_FORWARD,
     BACKUP_RUSH_BACK,
     BACKUP_POST_RUSH_CHECK,
@@ -79,10 +79,10 @@ static void Backup_SwitchStage(BackupStage_t next_stage, uint32_t current_time)
     Backup_StartTime = current_time;
 }
 
-static void Backup_StartTurn180(uint32_t current_time)
+static void Backup_StartTurnAround(uint32_t current_time)
 {
     Backup_TurnTargetYaw = Backup_NormalizeYaw(jy62_data.yaw_deg + 180.0f);
-    Backup_SwitchStage(BACKUP_TURN_180, current_time);
+    Backup_SwitchStage(BACKUP_TURN_AROUND, current_time);
 }
 
 static int Backup_IsOnStage(void)
@@ -154,7 +154,7 @@ static int Backup_SearchReady(void)
     return (Backup_IsSearchYawReady() && Backup_IsFrontBoundaryBlocked());
 }
 
-static int Backup_Turn180Ready(void)
+static int Backup_TurnAroundReady(void)
 {
     if(!JY62_IsOnline())
     {
@@ -219,7 +219,7 @@ void Backup_Update(void)
     switch (Backup_Stage)
     {
         case BACKUP_SPIN:
-            drive_Left_L();
+            drive_user_defined(-BACKUP_SEARCH_TURN_SPEED, BACKUP_SEARCH_TURN_SPEED);
             if(Backup_SearchReady())
             {
                 Backup_SwitchStage(BACKUP_PROBE_FORWARD, current_time);
@@ -290,18 +290,18 @@ void Backup_Update(void)
             }
             if(elapsed_time >= BACKUP_ESCAPE_BACK_TIME_MS)
             {
-                Backup_StartTurn180(current_time);
+                Backup_StartTurnAround(current_time);
             }
             break;
 
-        case BACKUP_TURN_180:
-            drive_Left_M();
-            if(Backup_Turn180Ready())
+        case BACKUP_TURN_AROUND:
+            drive_user_defined(-BACKUP_TURN_AROUND_SPEED, BACKUP_TURN_AROUND_SPEED);
+            if(Backup_TurnAroundReady())
             {
                 Backup_SwitchStage(BACKUP_WALL_RUSH_FORWARD, current_time);
                 break;
             }
-            if(elapsed_time >= BACKUP_TURN_180_TIMEOUT_MS)
+            if(elapsed_time >= BACKUP_TURN_AROUND_TIMEOUT_MS)
             {
                 Backup_SwitchStage(BACKUP_SPIN, current_time);
             }
@@ -322,15 +322,15 @@ void Backup_Update(void)
         case BACKUP_RUSH_BACK:
             if(elapsed_time < GOUP_RUSH_STAGE1_TIME)
             {
-                drive_user_defined(-500, -500);
+                drive_user_defined(-GOUP_RUSH_SPEED_STAGE1, -GOUP_RUSH_SPEED_STAGE1);
             }
             else if(elapsed_time < GOUP_RUSH_STAGE2_TIME)
             {
-                drive_user_defined(-550, -550);
+                drive_user_defined(-GOUP_RUSH_SPEED_STAGE2, -GOUP_RUSH_SPEED_STAGE2);
             }
             else if(elapsed_time < BACKUP_BACK_TIME_MS)
             {
-                drive_user_defined(-600, -600);
+                drive_user_defined(-GOUP_RUSH_SPEED_STAGE3, -GOUP_RUSH_SPEED_STAGE3);
             }
             else
             {
@@ -354,7 +354,7 @@ void Backup_Update(void)
             break;
 
         case BACKUP_FINISH_TURN:
-            drive_Left_S();
+            drive_user_defined(-BACKUP_FINISH_TURN_SPEED, BACKUP_FINISH_TURN_SPEED);
             if(elapsed_time >= BACKUP_TURN_TIME_MS)
             {
                 MOTOR_StopAll();
