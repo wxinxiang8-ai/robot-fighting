@@ -21,12 +21,55 @@ uint16_t shade_v0;//adc value
 uint16_t shade_v1;//adc value
 float voltage_v0;//voltage value
 float voltage_v1;//voltage value
+static uint32_t shade_v0_high_start_time = 0;
+static uint32_t shade_v1_high_start_time = 0;
+static uint8_t shade_v0_fault = 0;
+static uint8_t shade_v1_fault = 0;
 
 #define SHADE_IN_RANGE(value, min_v, max_v) ((value) >= (min_v) && (value) <= (max_v))
 
 void Shade_Sensor_Init(void)
 {
     HAL_ADC_Start_DMA(&hadc2,(uint32_t*)shade_buf,2);//start adc2 dma
+}
+
+static void Shade_UpdateFaultStatus(void)
+{
+    uint32_t now = HAL_GetTick();
+
+    if(voltage_v0 >= SHADE_FAULT_HIGH_VOLTAGE)
+    {
+        if(shade_v0_high_start_time == 0)
+        {
+            shade_v0_high_start_time = now;
+        }
+        else if((now - shade_v0_high_start_time) >= SHADE_FAULT_CONFIRM_TIME)
+        {
+            shade_v0_fault = 1;
+        }
+    }
+    else
+    {
+        shade_v0_high_start_time = 0;
+        shade_v0_fault = 0;
+    }
+
+    if(voltage_v1 >= SHADE_FAULT_HIGH_VOLTAGE)
+    {
+        if(shade_v1_high_start_time == 0)
+        {
+            shade_v1_high_start_time = now;
+        }
+        else if((now - shade_v1_high_start_time) >= SHADE_FAULT_CONFIRM_TIME)
+        {
+            shade_v1_fault = 1;
+        }
+    }
+    else
+    {
+        shade_v1_high_start_time = 0;
+        shade_v1_fault = 0;
+    }
 }
 
 void site_detect_shade()
@@ -44,24 +87,28 @@ void site_detect_shade()
 
     voltage_v0 = (float)(shade_v0 * 3.3f) / 4095.0f;//convert adc value to voltage value
     voltage_v1 = (float)(shade_v1 * 3.3f) / 4095.0f;//convert adc value to voltage value
+    Shade_UpdateFaultStatus();
 }
 
 ShadeScene_t Shade_GetScene(void)
 {
-    if(SHADE_IN_RANGE(voltage_v0, SHADE_OFF_FLOOR_V0_MIN, SHADE_OFF_FLOOR_V0_MAX) &&
-       SHADE_IN_RANGE(voltage_v1, SHADE_OFF_FLOOR_V1_MIN, SHADE_OFF_FLOOR_V1_MAX))
+    if(Shade_HasValidSensor() &&
+       (Shade_V0_IsFault() || SHADE_IN_RANGE(voltage_v0, SHADE_OFF_FLOOR_V0_MIN, SHADE_OFF_FLOOR_V0_MAX)) &&
+       (Shade_V1_IsFault() || SHADE_IN_RANGE(voltage_v1, SHADE_OFF_FLOOR_V1_MIN, SHADE_OFF_FLOOR_V1_MAX)))
     {
         return SHADE_SCENE_OFF_FLOOR;
     }
 
-    if(SHADE_IN_RANGE(voltage_v0, SHADE_OFF_YELLOW_V0_MIN, SHADE_OFF_YELLOW_V0_MAX) &&
-       SHADE_IN_RANGE(voltage_v1, SHADE_OFF_YELLOW_V1_MIN, SHADE_OFF_YELLOW_V1_MAX))
+    if(Shade_HasValidSensor() &&
+       (Shade_V0_IsFault() || SHADE_IN_RANGE(voltage_v0, SHADE_OFF_YELLOW_V0_MIN, SHADE_OFF_YELLOW_V0_MAX)) &&
+       (Shade_V1_IsFault() || SHADE_IN_RANGE(voltage_v1, SHADE_OFF_YELLOW_V1_MIN, SHADE_OFF_YELLOW_V1_MAX)))
     {
         return SHADE_SCENE_OFF_YELLOW;
     }
 
-    if(SHADE_IN_RANGE(voltage_v0, SHADE_OFF_BLUE_V0_MIN, SHADE_OFF_BLUE_V0_MAX) &&
-       SHADE_IN_RANGE(voltage_v1, SHADE_OFF_BLUE_V1_MIN, SHADE_OFF_BLUE_V1_MAX))
+    if(Shade_HasValidSensor() &&
+       (Shade_V0_IsFault() || SHADE_IN_RANGE(voltage_v0, SHADE_OFF_BLUE_V0_MIN, SHADE_OFF_BLUE_V0_MAX)) &&
+       (Shade_V1_IsFault() || SHADE_IN_RANGE(voltage_v1, SHADE_OFF_BLUE_V1_MIN, SHADE_OFF_BLUE_V1_MAX)))
     {
         return SHADE_SCENE_OFF_BLUE;
     }
@@ -75,6 +122,21 @@ uint8_t Shade_IsOffStageScene(void)
     return (scene == SHADE_SCENE_OFF_FLOOR ||
             scene == SHADE_SCENE_OFF_YELLOW ||
             scene == SHADE_SCENE_OFF_BLUE);
+}
+
+uint8_t Shade_V0_IsFault(void)
+{
+    return shade_v0_fault;
+}
+
+uint8_t Shade_V1_IsFault(void)
+{
+    return shade_v1_fault;
+}
+
+uint8_t Shade_HasValidSensor(void)
+{
+    return (!shade_v0_fault || !shade_v1_fault);
 }
 
 void Shade_TestInject_Enable(uint16_t v0_adc, uint16_t v1_adc)

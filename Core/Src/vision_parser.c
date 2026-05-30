@@ -30,6 +30,8 @@ volatile VisionTarget_t vision_target = { .type = 'X', .valid = 0u };
 static uint32_t         vision_rx_total   = 0u;  /* DMA回调触发次数 */
 static uint32_t         vision_rx_success = 0u;  /* 成功解析帧数 */
 static uint32_t         vision_rx_cserr   = 0u;  /* 校验和错误次数 */
+static volatile uint8_t vision_d_ack      = 0u;
+static volatile uint8_t vision_s_ack      = 0u;
 
 /* ---- 内部缓冲区 ---- */
 static uint8_t dma_rx_buf[DMA_RX_BUF_SIZE];
@@ -94,6 +96,22 @@ static void parse_frame(const uint8_t *buf, uint16_t size)
 
     char type_ch = body[0];
     int  cx = 0, cy = 0, area = 0, dir = 0;
+
+    if (body_len == 1)
+    {
+        if(type_ch == 'd')
+        {
+            vision_d_ack = 1u;
+            vision_rx_success++;
+            return;
+        }
+        if(type_ch == 's')
+        {
+            vision_s_ack = 1u;
+            vision_rx_success++;
+            return;
+        }
+    }
 
     if (body_len > 1)
     {
@@ -208,6 +226,22 @@ void Vision_SendCmd(char cmd)
 {
     uint8_t buf[3] = { (uint8_t)'#', (uint8_t)cmd, (uint8_t)'\n' };
     HAL_UART_Transmit(&huart2, buf, 3u, 10u);
+}
+
+void Vision_ClearAck(void)
+{
+    vision_d_ack = 0u;
+    vision_s_ack = 0u;
+}
+
+uint8_t Vision_HasDAck(void)
+{
+    return vision_d_ack;
+}
+
+uint8_t Vision_HasSAck(void)
+{
+    return vision_s_ack;
 }
 
 /**

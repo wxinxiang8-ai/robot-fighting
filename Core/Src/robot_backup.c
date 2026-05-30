@@ -21,6 +21,7 @@ typedef enum {
     BACKUP_ESCAPE_BACK,
     BACKUP_TURN_AROUND,
     BACKUP_WALL_RUSH_FORWARD,
+    BACKUP_PRE_RUSH_BACK,
     BACKUP_RUSH_BACK,
     BACKUP_POST_RUSH_CHECK,
     BACKUP_FINISH_TURN
@@ -87,7 +88,9 @@ static void Backup_StartTurnAround(uint32_t current_time)
 
 static int Backup_IsOnStage(void)
 {
-    return (voltage_v0 < 2.8f);
+    return (Shade_HasValidSensor() &&
+            (Shade_V0_IsFault() || voltage_v0 < 2.8f) &&
+            (Shade_V1_IsFault() || voltage_v1 < 2.8f));
 }
 
 static int Backup_IsFrontBoundaryBlocked(void)
@@ -95,21 +98,23 @@ static int Backup_IsFrontBoundaryBlocked(void)
     return (Obs_Data.IR4 == OBS_BLOCKED_STATE && Obs_Data.IR11 == OBS_BLOCKED_STATE);
 }
 
-static char Backup_GetVisionType(void)
+static int Backup_IsWallBlocked(void)
 {
+#if BACKUP_WALL_DETECT_MODE == BACKUP_WALL_DETECT_VISION
     if(Vision_IsTimeout() || !vision_target.valid)
     {
         Backup_StableVisionType = 'X';
-        return 'X';
+        return 0;
     }
 
     Backup_StableVisionType = vision_target.type;
-    return Backup_StableVisionType;
-}
-
-static int Backup_IsWallBlocked(void)
-{
-    return (Backup_GetVisionType() == 'G');
+    return (Backup_StableVisionType == 'G');
+#elif BACKUP_WALL_DETECT_MODE == BACKUP_WALL_DETECT_IR8
+    Backup_StableVisionType = 'X';
+    return (Obs_Data.IR8 == OBS_BLOCKED_STATE);
+#else
+#error "Invalid BACKUP_WALL_DETECT_MODE"
+#endif
 }
 
 static int Backup_IsWallBlockedConfirmed(void)
@@ -278,7 +283,7 @@ void Backup_Update(void)
             drive_user_defined(BACKUP_FORWARD_SPEED, BACKUP_FORWARD_SPEED);
             if(elapsed_time >= BACKUP_WALL_PRESS_TIME_MS)
             {
-                Backup_SwitchStage(BACKUP_RUSH_BACK, current_time);
+                Backup_SwitchStage(BACKUP_PRE_RUSH_BACK, current_time);
             }
             break;
 
@@ -298,7 +303,7 @@ void Backup_Update(void)
             drive_user_defined(-BACKUP_TURN_AROUND_SPEED, BACKUP_TURN_AROUND_SPEED);
             if(Backup_TurnAroundReady())
             {
-                Backup_SwitchStage(BACKUP_WALL_RUSH_FORWARD, current_time);
+                Backup_SwitchStage(BACKUP_PROBE_FORWARD, current_time);
                 break;
             }
             if(elapsed_time >= BACKUP_TURN_AROUND_TIMEOUT_MS)
@@ -315,22 +320,25 @@ void Backup_Update(void)
             }
             if(elapsed_time >= BACKUP_WALL_RUSH_TIME_MS)
             {
+                Backup_SwitchStage(BACKUP_PRE_RUSH_BACK, current_time);
+            }
+            break;
+
+        case BACKUP_PRE_RUSH_BACK:
+            if(elapsed_time < BACKUP_PRE_RUSH_BACK_TIME_MS)
+            {
+                drive_user_defined(-BACKUP_PRE_RUSH_BACK_SPEED, -BACKUP_PRE_RUSH_BACK_SPEED);
+            }
+            else
+            {
                 Backup_SwitchStage(BACKUP_RUSH_BACK, current_time);
             }
             break;
 
         case BACKUP_RUSH_BACK:
-            if(elapsed_time < GOUP_RUSH_STAGE1_TIME)
+            if(elapsed_time < BACKUP_BACK_TIME_MS)
             {
-                drive_user_defined(-GOUP_RUSH_SPEED_STAGE1, -GOUP_RUSH_SPEED_STAGE1);
-            }
-            else if(elapsed_time < GOUP_RUSH_STAGE2_TIME)
-            {
-                drive_user_defined(-GOUP_RUSH_SPEED_STAGE2, -GOUP_RUSH_SPEED_STAGE2);
-            }
-            else if(elapsed_time < BACKUP_BACK_TIME_MS)
-            {
-                drive_user_defined(-GOUP_RUSH_SPEED_STAGE3, -GOUP_RUSH_SPEED_STAGE3);
+                drive_user_defined(-BACKUP_RUSH_BACK_SPEED, -BACKUP_RUSH_BACK_SPEED);
             }
             else
             {

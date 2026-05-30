@@ -89,8 +89,9 @@ static int detect_shade(uint32_t now)
     Roaming_ShadeSceneStartTime = 0;
     return 0;
 #else
-    if((voltage_v0 > 2.8f && voltage_v0 < 3.1f) &&
-       (voltage_v1 > 2.8f && voltage_v1 < 3.1f))
+    if(Shade_HasValidSensor() &&
+       (Shade_V0_IsFault() || (voltage_v0 > 2.8f && voltage_v0 < 3.1f)) &&
+       (Shade_V1_IsFault() || (voltage_v1 > 2.8f && voltage_v1 < 3.1f)))
     {
         if(Roaming_ShadeCount < ROAMING_SHADE_CONFIRM_COUNT)
         {

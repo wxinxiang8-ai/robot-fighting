@@ -206,6 +206,7 @@ uint8_t JY62_PitchTiltDetected(float threshold_deg, uint32_t confirm_ms)
     uint32_t now;
     uint32_t angle_count;
     float pitch;
+    float roll;
 
     if (!JY62_IsOnline())
     {
@@ -226,7 +227,13 @@ uint8_t JY62_PitchTiltDetected(float threshold_deg, uint32_t confirm_ms)
         pitch = -pitch;
     }
 
-    if (pitch < threshold_deg)
+    roll = jy62_data.roll_deg;
+    if (roll < 0.0f)
+    {
+        roll = -roll;
+    }
+
+    if (pitch < threshold_deg && roll < threshold_deg)
     {
         jy62_pitch_tilt_active = 0u;
         return 0u;
