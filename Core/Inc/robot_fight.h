@@ -16,10 +16,10 @@
 #define FIGHT_PITCH_TILT_CONFIRM_MS 500U
 #define FIGHT_PITCH_RECOVER_TIME 300U
 #define FIGHT_PITCH_RECOVER_SPEED 350
-#define FIGHT_RETREAT_TIME 400 //前边缘直退时间
+#define FIGHT_RETREAT_TIME 700 //前边缘直退时间
 #define FIGHT_RETREAT_SOFT_TIME 250 //前边缘初段中速后退时间
-#define FIGHT_RETREAT_SOFT_SPEED 250 //前边缘初段中速后退速度
-#define FIGHT_RETREAT_SPEED 480 //前边缘后退基础速度
+#define FIGHT_RETREAT_SOFT_SPEED 140 //前边缘初段中速后退速度
+#define FIGHT_RETREAT_SPEED 280 //前边缘后退基础速度
 #define FIGHT_EDGE_RETREAT_DIFF 100 //单侧前边缘小弧后退时的左右轮差速
 #define FIGHT_TURN_TIME   550 //普通掉头时间(180°)
 #define FIGHT_EDGE_TURN_TIME 320 //单侧边缘逃逸后的短转时间
@@ -28,7 +28,9 @@
 #define FIGHT_FRONT_ARC_BREAK_TIME 320U //前侧方锁死后的大弧甩头时间
 #define FIGHT_TURN_SPEED 500 //原地转向速度
 #define FIGHT_FB_RETREAT_TIME 400 //F/B回避先后退时间
-#define FIGHT_FB_RETREAT_SPEED 320
+#define FIGHT_FB_RETREAT_SOFT_TIME 200 //F/B回避初段低速后退时间
+#define FIGHT_FB_RETREAT_SOFT_SPEED 140 //F/B回避初段低速后退速度
+#define FIGHT_FB_RETREAT_SPEED 200
 #define FIGHT_FB_TURN_TIME 320 //F/B回避短转时间
 #define FIGHT_FB_FORWARD_TIME 200 //F/B回避后前进时间
 #define FIGHT_FB_ADVANCE_SPEED 350
@@ -38,14 +40,14 @@
 #define FIGHT_FRONT_ARC_BREAK_OUTER_SPEED 700 //前侧方锁死甩头外侧轮速度
 #define FIGHT_TRACK_FRONT_SMALL_ARC_INNER_SPEED 400 //前方小弧线内侧轮速度
 #define FIGHT_TRACK_FRONT_SMALL_ARC_OUTER_SPEED 550 //前方小弧线外侧轮速度
-#define FIGHT_TRACK_PUSH_SPEED 550 //正前推进速度
+#define FIGHT_TRACK_PUSH_SPEED 580 //正前推进速度
 #define FIGHT_TRACK_SIDE_ARC_BACK_SPEED 250 //正侧方甩头内侧反转速度
 #define FIGHT_TRACK_SIDE_ARC_FORWARD_SPEED 650 //正侧方甩头外侧前进速度
 #define FIGHT_TRACK_REAR_ARC_BACK_SPEED 350 //后侧方甩头内侧反转速度
 #define FIGHT_TRACK_REAR_ARC_FORWARD_SPEED 700 //后侧方甩头外侧前进速度
 #define FIGHT_VISION_CONFIRM_COUNT 2 //视觉类型消抖次数
 #define FIGHT_FB_CONFIRM_COUNT 1 //F/B回避连续新视觉帧确认次数
-#define FIGHT_SHADE_CONFIRM_TIME 100U //V0/V1灰度掉台持续确认时间
+#define FIGHT_SHADE_CONFIRM_TIME 300U //V0/V1灰度掉台持续确认时间
 
 /*======敌人（能量块）方向======*/
 typedef enum{

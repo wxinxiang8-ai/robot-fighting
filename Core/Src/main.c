@@ -93,36 +93,28 @@ static char Backup_Test_LastNonXType = 'X';
 #if STATE_UART_DEBUG_MODE
 #define STATE_UART_DEBUG_PRINT_MS 500U
 
-static const char *State_Debug_GetName(RobotState state)
+static uint8_t State_Debug_CalcChecksum(const char *data, int len)
 {
-  switch (state)
-  {
-    case ROBOT_GO_UP:   return "GO_UP";
-    case ROBOT_ROAMING: return "ROAMING";
-    case ROBOT_ATTACK:  return "ATTACK";
-    case ROBOT_BACKUP:  return "BACKUP";
-    default:            return "UNKNOWN";
-  }
-}
+  uint8_t cs = 0;
 
-static uint8_t State_Debug_PinValue(GPIO_PinState state)
-{
-  return (state == GPIO_PIN_SET) ? 1U : 0U;
+  for (int i = 0; i < len; i++)
+  {
+    cs ^= (uint8_t)data[i];
+  }
+
+  return cs;
 }
 
 static void State_Debug_Update(void)
 {
   static uint32_t state_debug_last_print = 0;
-  static char uart_buf[128];
+  static char uart_buf[16];
   uint32_t now = HAL_GetTick();
 
   if ((now - state_debug_last_print) >= STATE_UART_DEBUG_PRINT_MS)
   {
-    RobotState state = Robot_Control_GetState();
-    uint32_t vision_rx_total;
-    uint32_t vision_rx_success;
-    uint32_t vision_rx_cserr;
-    uint8_t vision_timeout = Vision_IsTimeout();
+    char type = (Vision_IsTimeout() || !vision_target.valid) ? 'X' : vision_target.type;
+    uint8_t checksum;
     int len;
 
     state_debug_last_print = now;
@@ -131,29 +123,8 @@ static void State_Debug_Update(void)
       return;
     }
 
-    Vision_GetStats(&vision_rx_total, &vision_rx_success, &vision_rx_cserr);
-    len = snprintf(uart_buf, sizeof(uart_buf),
-                   "state:%s,vis:%c,v:%u,to:%u,rx:%lu,ok:%lu,cs:%lu,ir:%u%u%u%u%u%u%u%u%u%u%u%u%u\r\n",
-                   State_Debug_GetName(state),
-                   vision_target.type,
-                   vision_target.valid,
-                   vision_timeout,
-                   (unsigned long)vision_rx_total,
-                   (unsigned long)vision_rx_success,
-                   (unsigned long)vision_rx_cserr,
-                   State_Debug_PinValue(Obs_Data.IR1),
-                   State_Debug_PinValue(Obs_Data.IR2),
-                   State_Debug_PinValue(Obs_Data.IR3),
-                   State_Debug_PinValue(Obs_Data.IR4),
-                   State_Debug_PinValue(Obs_Data.IR5),
-                   State_Debug_PinValue(Obs_Data.IR6),
-                   State_Debug_PinValue(Obs_Data.IR7),
-                   State_Debug_PinValue(Obs_Data.IR8),
-                   State_Debug_PinValue(Obs_Data.IR9),
-                   State_Debug_PinValue(Obs_Data.IR10),
-                   State_Debug_PinValue(Obs_Data.IR11),
-                   State_Debug_PinValue(Obs_Data.IR12),
-                   State_Debug_PinValue(Obs_Data.IR13));
+    checksum = State_Debug_CalcChecksum(&type, 1);
+    len = snprintf(uart_buf, sizeof(uart_buf), "$%c*%02X\n", type, checksum);
     if ((len > 0) && (len < (int)sizeof(uart_buf)))
     {
       HAL_UART_Transmit_DMA(&huart2, (uint8_t *)uart_buf, (uint16_t)len);

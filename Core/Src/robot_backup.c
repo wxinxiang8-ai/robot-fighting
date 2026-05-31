@@ -12,6 +12,7 @@
 #include "vision_parser.h"
 
 #define BACKUP_WALL_BLOCK_CONFIRM_COUNT 3u
+#define BACKUP_VISION_WALL_FAIL_LIMIT 2u
 
 typedef enum {
     BACKUP_SPIN = 0,
@@ -32,6 +33,7 @@ static uint32_t Backup_StartTime = 0;
 static bool Backup_Done = false;
 static uint8_t Backup_OnStageCount = 0;
 static uint8_t Backup_WallBlockedCount = 0;
+static uint8_t Backup_VisionWallFailCount = 0;
 static float Backup_TurnTargetYaw = 0.0f;
 static char Backup_StableVisionType = 'X';
 
@@ -98,9 +100,8 @@ static int Backup_IsFrontBoundaryBlocked(void)
     return (Obs_Data.IR4 == OBS_BLOCKED_STATE && Obs_Data.IR11 == OBS_BLOCKED_STATE);
 }
 
-static int Backup_IsWallBlocked(void)
+static int Backup_IsWallBlockedByVision(void)
 {
-#if BACKUP_WALL_DETECT_MODE == BACKUP_WALL_DETECT_VISION
     if(Vision_IsTimeout() || !vision_target.valid)
     {
         Backup_StableVisionType = 'X';
@@ -109,9 +110,25 @@ static int Backup_IsWallBlocked(void)
 
     Backup_StableVisionType = vision_target.type;
     return (Backup_StableVisionType == 'G');
-#elif BACKUP_WALL_DETECT_MODE == BACKUP_WALL_DETECT_IR8
+}
+
+static int Backup_IsWallBlockedByIR8(void)
+{
     Backup_StableVisionType = 'X';
     return (Obs_Data.IR8 == OBS_BLOCKED_STATE);
+}
+
+static int Backup_IsWallBlocked(void)
+{
+#if BACKUP_WALL_DETECT_MODE == BACKUP_WALL_DETECT_VISION
+    if(Backup_VisionWallFailCount >= BACKUP_VISION_WALL_FAIL_LIMIT)
+    {
+        return Backup_IsWallBlockedByIR8();
+    }
+
+    return Backup_IsWallBlockedByVision();
+#elif BACKUP_WALL_DETECT_MODE == BACKUP_WALL_DETECT_IR8
+    return Backup_IsWallBlockedByIR8();
 #else
 #error "Invalid BACKUP_WALL_DETECT_MODE"
 #endif
@@ -200,6 +217,7 @@ void Backup_Init(void)
     Backup_Done = false;
     Backup_OnStageCount = 0;
     Backup_WallBlockedCount = 0;
+    Backup_VisionWallFailCount = 0;
     Backup_TurnTargetYaw = 0.0f;
     Backup_StableVisionType = 'X';
 }
@@ -267,12 +285,24 @@ void Backup_Update(void)
             {
                 if(Backup_IsWallBlockedConfirmed())
                 {
+#if BACKUP_WALL_DETECT_MODE == BACKUP_WALL_DETECT_VISION
+                    if(Backup_VisionWallFailCount < BACKUP_VISION_WALL_FAIL_LIMIT)
+                    {
+                        Backup_VisionWallFailCount = 0;
+                    }
+#endif
                     Backup_SwitchStage(BACKUP_WALL_PRESS, current_time);
                     break;
                 }
 
                 if(Backup_WallBlockedCount == 0u)
                 {
+#if BACKUP_WALL_DETECT_MODE == BACKUP_WALL_DETECT_VISION
+                    if(Backup_VisionWallFailCount < BACKUP_VISION_WALL_FAIL_LIMIT)
+                    {
+                        Backup_VisionWallFailCount++;
+                    }
+#endif
                     drive_user_defined(-BACKUP_ESCAPE_BACK_SPEED, -BACKUP_ESCAPE_BACK_SPEED);
                     Backup_SwitchStage(BACKUP_ESCAPE_BACK, current_time);
                 }

@@ -90,8 +90,8 @@ static int detect_shade(uint32_t now)
     return 0;
 #else
     if(Shade_HasValidSensor() &&
-       (Shade_V0_IsFault() || (voltage_v0 > 2.8f && voltage_v0 < 3.1f)) &&
-       (Shade_V1_IsFault() || (voltage_v1 > 2.8f && voltage_v1 < 3.1f)))
+       (Shade_V0_IsFault() || (voltage_v0 > 2.9f && voltage_v0 < 3.2f)) &&
+       (Shade_V1_IsFault() || (voltage_v1 > 2.9f && voltage_v1 < 3.2f)))
     {
         if(Roaming_ShadeCount < ROAMING_SHADE_CONFIRM_COUNT)
         {

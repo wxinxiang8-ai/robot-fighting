@@ -275,8 +275,8 @@ static bool detect_shade(uint32_t now)
     return false;
 #else
     if(Shade_HasValidSensor() &&
-       (Shade_V0_IsFault() || (voltage_v0 > 2.8f && voltage_v0 < 3.1f)) &&
-       (Shade_V1_IsFault() || (voltage_v1 > 2.8f && voltage_v1 < 3.1f)))
+       (Shade_V0_IsFault() || (voltage_v0 > 2.9f && voltage_v0 < 3.2f)) &&
+       (Shade_V1_IsFault() || (voltage_v1 > 2.9f && voltage_v1 < 3.2f)))
     {
         if(Fight_ShadeStartTime == 0)
         {
@@ -789,7 +789,14 @@ void Fight_Update(void)
 
         /*======F/B回避先后退======*/
         case FIGHT_FB_TURN:
-            drive_user_defined(-FIGHT_FB_RETREAT_SPEED, -FIGHT_FB_RETREAT_SPEED);
+            if(elapsed < FIGHT_FB_RETREAT_SOFT_TIME)
+            {
+                drive_user_defined(-FIGHT_FB_RETREAT_SOFT_SPEED, -FIGHT_FB_RETREAT_SOFT_SPEED);
+            }
+            else
+            {
+                drive_user_defined(-FIGHT_FB_RETREAT_SPEED, -FIGHT_FB_RETREAT_SPEED);
+            }
             if(elapsed >= FIGHT_FB_RETREAT_TIME)
             {
                 Fight_State = FIGHT_FORWARD;

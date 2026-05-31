@@ -20,10 +20,10 @@ extern float voltage_v1;//voltage value
 #define SHADE_FAULT_HIGH_VOLTAGE 3.25f
 #define SHADE_FAULT_CONFIRM_TIME 1000U
 
-#define SHADE_OFF_FLOOR_V0_MIN      2.80f
-#define SHADE_OFF_FLOOR_V0_MAX      3.10f
-#define SHADE_OFF_FLOOR_V1_MIN      2.80f
-#define SHADE_OFF_FLOOR_V1_MAX      3.10f
+#define SHADE_OFF_FLOOR_V0_MIN      2.90f
+#define SHADE_OFF_FLOOR_V0_MAX      3.20f
+#define SHADE_OFF_FLOOR_V1_MIN      2.90f
+#define SHADE_OFF_FLOOR_V1_MAX      3.20f
 
 #define SHADE_OFF_YELLOW_V0_MIN     0.00f
 #define SHADE_OFF_YELLOW_V0_MAX     0.00f

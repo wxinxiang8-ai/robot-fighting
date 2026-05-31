@@ -35,9 +35,6 @@ void Vision_SendColor(char color);
  * @param cmd 指令字符；当前主流程只发送 'N'=新一轮开始/主控重启
  */
 void Vision_SendCmd(char cmd);
-void Vision_ClearAck(void);
-uint8_t Vision_HasDAck(void);
-uint8_t Vision_HasSAck(void);
 
 /**
  * @brief 检查视觉数据是否超时 (200ms无新数据视为超时)
